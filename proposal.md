@@ -22,6 +22,8 @@ El sistema consiste en una aplicación que permite gestionar recetas de cocina d
 ### Modelo
 <img width="703" height="504" alt="image" src="https://github.com/user-attachments/assets/17a64212-afb7-4ec7-a17d-ac77b882a72c" />
 
+https://app.diagrams.net/?src=about#G1sc9pZNAJjoqw87PuV9H9PeRhbPGQ2O6C#%7B%22pageId%22%3A%22C5RBs43oDa-KdzZeNtuy%22%7D
+
 
 ## Alcance Funcional 
 
