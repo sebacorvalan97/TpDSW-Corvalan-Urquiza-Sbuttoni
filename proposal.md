@@ -32,16 +32,16 @@ https://app.diagrams.net/?src=about#G1sc9pZNAJjoqw87PuV9H9PeRhbPGQ2O6C#%7B%22pag
 Regularidad:
 |Req|Detalle|
 |:-|:-|
-|CRUD simple|1. CRUD Receta<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario|
-|CRUD dependiente|1. CRUD Preparación {depende de} CRUD Receta<br>2. CRUD Comentario {depende de} CRUD Receta|
+|CRUD simple|1. CRUD Plato<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario|
+|CRUD dependiente|1. CRUD Receta {depende de} CRUD Plato<br>2. CRUD IngredienteSustituto {depende de} CRUD Ingrediente<br>3. CRUD Ususrio {depende de} CRUD Administrador|
 |Listado<br>+<br>detalle| 1.Listado de Recetas filtrado por Categoría => detalle CRUD Receta<br> 2. Búsqueda de recetas por origen.|
-|CUU/Epic|1. Registrar una receta completa con ingredientes y pasos<br>2. Gestionar la calificación y comentarios de la experiencia|
+|CUU/Epic|1. Registrar un plato con ingredientes<br>2. Gestionar la calificación y comentarios de la experiencia|
 
 
 Adicionales para Aprobación
 |Req|Detalle|
 |:-|:-|
-|CRUD |1. CRUD Receta<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario<br>5. CRUD Comentario<br>6. CRUD Origen<br>7. CRUD Preparación|
+|CRUD |1. CRUD Receta<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario<br>5. CRUD Comentario<br>6. CRUD Origen<br>7. CRUD Preparación<br>8. CRUD Administrador|
 |CUU/Epic|1. Búsqueda avanzada y consulta detallada de cocción<br>2. Generar ranking de la comunidad con recetas más populares|
 
 
