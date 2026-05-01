@@ -21,7 +21,7 @@ El sistema consiste en una aplicación que permite gestionar recetas de cocina d
 
 ### Modelo
 <img width="8190" height="9340" alt="MODELO_TP_DSW_V0 1" src="https://github.com/user-attachments/assets/f639082f-459c-4d01-aa64-c46eb18514ed" />
-" />
+
 
 https://app.diagrams.net/?src=about#G1sc9pZNAJjoqw87PuV9H9PeRhbPGQ2O6C#%7B%22pageId%22%3A%22C5RBs43oDa-KdzZeNtuy%22%7D
 
