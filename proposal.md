@@ -42,7 +42,7 @@ Regularidad:
 Adicionales para Aprobación
 |Req|Detalle|
 |:-|:-|
-|CRUD |1. CRUD plato<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario<br>5. CRUD Comentario<br>6. CRUD Origen<br>7. CRUD Dificultad<br>8. CRUD Administrador|
+|CRUD |1. CRUD Plato<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario<br>5. CRUD Comentario<br>6. CRUD Origen<br>7. CRUD Dificultad<br>8. CRUD Administrador|
 |CUU/Epic|1. Búsqueda avanzada y consulta detallada de cocción<br>2. Generar ranking de la comunidad con recetas más populares|
 
 
