@@ -35,7 +35,7 @@ Regularidad:
 |:-|:-|
 |CRUD simple|1. CRUD Plato<br>2. CRUD Ingrediente<br>3. CRUD Categoria<br>4. CRUD Usuario|
 |CRUD dependiente|1. CRUD Receta {depende de} CRUD Plato<br>2. CRUD IngredienteSustituto {depende de} CRUD Ingrediente<br>3. CRUD Pasos de Receta {depende de} CRUD Receta|
-|Listado<br>+<br>detalle| 1.Listado de Recetas filtrado por Categoría => detalle CRUD Receta<br> 2. Búsqueda de recetas por origen.|
+|Listado<br>+<br>detalle| 1. Listado de Recetas filtrado por Categoría => detalle CRUD Receta<br> 2. Búsqueda de recetas por origen.|
 |CUU/Epic|1. Registrar un plato con ingredientes<br>2. Gestionar la calificación y comentarios de la experiencia|
 
 
