@@ -4,8 +4,6 @@
 ### Integrantes
 53694 - Corvalan, Sebastian 
 
-48455 - Taibbi, Joaquín
-
 54197 - Sbuttoni, Candela 
 
 54300 - Urquiza, Mariano
