@@ -1,0 +1,20 @@
+{
+  "name": "tpdsw",
+  "version": "1.0.0",
+  "description": "trabajo practico dsw",
+  "homepage": "https://github.com/nanourquiza/Pr-ctica-Desarrollo-de-Software#readme",
+  "bugs": {
+    "url": "https://github.com/nanourquiza/Pr-ctica-Desarrollo-de-Software/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nanourquiza/Pr-ctica-Desarrollo-de-Software.git"
+  },
+  "license": "ISC",
+  "author": "Mariano Urquiza, Candela Sbuttoni, Sebastian Corvalan",
+  "type": "commonjs",
+  "main": "src/app.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
