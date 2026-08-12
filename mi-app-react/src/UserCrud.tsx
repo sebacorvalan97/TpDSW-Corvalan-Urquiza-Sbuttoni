@@ -1,171 +1,197 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useEffect, useState } from 'react';
+import './UserCrud.css';
 
-export interface User {
-  id?: string | number;
-  name: string;
+export interface Usuario {
+  id: number;
+  nombre: string;
   email: string;
+  rol: string;
 }
 
-const API_URL = 'http://localhost:3000/api/users';
+const API_URL = 'http://localhost:3000/api/usuarios';
 
-export default function UserCrud() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [formData, setFormData] = useState<User>({ name: '', email: '' });
-  const [editingId, setEditingId] = useState<string | number | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+export const UserCrud: React.FC = () => {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    email: '',
+    rol: 'Cliente',
+  });
+  const [editId, setEditId] = useState<number | null>(null);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  // Cargar usuarios desde la API al montar el componente (READ)
+  const cargarUsuarios = async () => {
     try {
-      const response = await fetch(API_URL);
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      setUsuarios(data);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    cargarUsuarios();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  // Crear o actualizar un usuario (CREATE / UPDATE)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return;
+    if (!formData.nombre.trim() || !formData.email.trim()) return;
 
     try {
-      if (editingId) {
-        await fetch(`${API_URL}/${editingId}`, {
+      if (editId !== null) {
+        // PUT
+        await fetch(`${API_URL}/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
-        setEditingId(null);
+        setEditId(null);
       } else {
+        // POST
         await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       }
-      setFormData({ name: '', email: '' });
-      fetchUsers();
+
+      setFormData({ nombre: '', email: '', rol: 'Cliente' });
+      cargarUsuarios(); // Recargar la lista desde el servidor
     } catch (error) {
-      console.error('Error al guardar el usuario:', error);
+      console.error('Error al guardar usuario:', error);
     }
   };
 
-  const handleEdit = (user: User) => {
-    if (user.id !== undefined) {
-      setEditingId(user.id);
-      setFormData({ name: user.name, email: user.email });
-    }
+  // Cargar en el formulario
+  const handleEdit = (usuario: Usuario) => {
+    setEditId(usuario.id);
+    setFormData({
+      nombre: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+    });
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFormData({ name: '', email: '' });
-  };
-
-  const handleDelete = async (id: string | number) => {
+  // Eliminar usuario (DELETE)
+  const handleDelete = async (id: number) => {
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
+
     try {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      fetchUsers();
+      if (editId === id) handleCancel();
+      cargarUsuarios();
     } catch (error) {
       console.error('Error al eliminar usuario:', error);
     }
   };
 
-  return (
-    <div
-      style={{
-        maxWidth: '600px',
-        margin: '20px auto',
-        fontFamily: 'sans-serif',
-      }}
-    >
-      <h2>Gestión de Usuarios - El Bodegón Digital</h2>
+  const handleCancel = () => {
+    setEditId(null);
+    setFormData({ nombre: '', email: '', rol: 'Cliente' });
+  };
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}
-      >
+  return (
+    <div className="crud-container">
+      <h2 className="crud-title">Gestión de Usuarios — El Bodegón Digital</h2>
+
+      <form className="crud-form" onSubmit={handleSubmit}>
         <input
+          className="crud-input"
           type="text"
-          name="name"
-          placeholder="Nombre"
-          value={formData.name}
+          name="nombre"
+          placeholder="Nombre completo"
+          value={formData.nombre}
           onChange={handleChange}
           required
         />
         <input
+          className="crud-input"
           type="email"
           name="email"
-          placeholder="Email"
+          placeholder="Correo electrónico"
           value={formData.email}
           onChange={handleChange}
           required
         />
-        <button type="submit">{editingId ? 'Actualizar' : 'Agregar'}</button>
-        {editingId && (
-          <button type="button" onClick={handleCancelEdit}>
+        <select
+          className="crud-select"
+          name="rol"
+          value={formData.rol}
+          onChange={handleChange}
+        >
+          <option value="Cliente">Cliente</option>
+          <option value="Empleado">Empleado</option>
+          <option value="Administrador">Administrador</option>
+        </select>
+
+        <button className="btn btn-primary" type="submit">
+          {editId !== null ? 'Guardar Cambios' : 'Agregar Usuario'}
+        </button>
+        {editId !== null && (
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={handleCancel}
+          >
             Cancelar
           </button>
         )}
       </form>
 
-      {loading ? (
-        <p>Cargando usuarios...</p>
-      ) : (
-        <table
-          border={1}
-          cellPadding={8}
-          style={{ width: '100%', borderCollapse: 'collapse' }}
-        >
-          <thead>
+      <table className="crud-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuarios.length === 0 ? (
             <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Acciones</th>
+              <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
+                No hay usuarios registrados.
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {users.length === 0 ? (
-              <tr>
-                <td colSpan={4} style={{ textAlign: 'center' }}>
-                  No hay usuarios registrados.
+          ) : (
+            usuarios.map((u) => (
+              <tr key={u.id}>
+                <td>{u.id}</td>
+                <td>{u.nombre}</td>
+                <td>{u.email}</td>
+                <td>
+                  <span className="badge-rol">{u.rol}</span>
+                </td>
+                <td>
+                  <button
+                    className="btn btn-edit"
+                    onClick={() => handleEdit(u)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-delete"
+                    onClick={() => handleDelete(u.id)}
+                  >
+                    Eliminar
+                  </button>
                 </td>
               </tr>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.id}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <button onClick={() => handleEdit(user)}>Editar</button>{' '}
-                    <button
-                      onClick={() =>
-                        user.id !== undefined && handleDelete(user.id)
-                      }
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
-}
+};
+export default UserCrud;
