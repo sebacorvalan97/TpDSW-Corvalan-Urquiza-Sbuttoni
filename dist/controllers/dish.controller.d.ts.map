@@ -1,1 +1,0 @@
-{"version":3,"file":"dish.controller.d.ts","sourceRoot":"","sources":["../../src/controllers/dish.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAG5C,eAAO,MAAM,cAAc;wBACH,OAAO,OAAO,QAAQ;sBAKxB,OAAO,OAAO,QAAQ;sBAMtB,OAAO,OAAO,QAAQ;sBAYtB,OAAO,OAAO,QAAQ;uBAWrB,OAAO,OAAO,QAAQ;CAU5C,CAAC"}

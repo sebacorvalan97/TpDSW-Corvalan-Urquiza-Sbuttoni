@@ -1,0 +1,331 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   EL BODEGÓN DIGITAL - CSS DESIGN SYSTEM & STYLESHEET
+   Trabajo Práctico DSW • Corvalan, Sbuttoni, Urquiza
+   ========================================================================== */
+
+:root {
+  /* Core Brand Colors */
+  --color-primary: #154212;
+  --color-primary-dark: #002201;
+  --color-primary-light: #2d5a27;
+  --color-primary-container: #bcf0ae;
+  
+  /* Accent & Warmth Tones */
+  --color-accent: #6d4820;
+  --color-accent-light: #ffdcbd;
+  --color-gold: #ecb987;
+  --color-danger: #ba1a1a;
+  --color-danger-bg: #ffdad6;
+
+  /* Neutrals & Surfaces */
+  --color-surface-bg: #fbf9f8;
+  --color-surface-card: #ffffff;
+  --color-surface-muted: #f6f3f2;
+  --color-surface-dark: #1b1c1c;
+  
+  /* Borders & Dividers */
+  --color-border-main: #c2c9bb;
+  --color-border-subtle: #e4e2e1;
+  --color-border-divider: #f0eded;
+
+  /* Text Colors */
+  --color-text-main: #1b1c1c;
+  --color-text-muted: #605e5b;
+  --color-text-faint: #72796e;
+
+  /* Typography */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Radii & Shadows */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 8px 30px rgba(21, 66, 18, 0.06);
+  --shadow-elevated: 0 14px 40px rgba(0, 0, 0, 0.09);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base Elements */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface-bg);
+  color: var(--color-text-main);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, .font-serif-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.015em;
+}
+
+/* Material Symbols configuration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.material-symbols-outlined.fill-icon,
+.fill-icon {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ==========================================================================
+   CUSTOM COMPONENT CLASSES & DESIGN TOKENS
+   ========================================================================== */
+
+/* Buttons */
+.btn-bodegon-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary-dark);
+  box-shadow: var(--shadow-soft);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-bodegon-primary:hover {
+  background-color: var(--color-primary-light);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.btn-bodegon-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-bodegon-secondary {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-main);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-bodegon-secondary:hover {
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-primary);
+}
+
+.btn-bodegon-accent {
+  background-color: var(--color-primary-container);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.btn-bodegon-accent:hover {
+  background-color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+/* Cards & Bento Grid Elements */
+.card-bodegon {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.card-bodegon:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.card-bodegon-interactive {
+  cursor: pointer;
+}
+
+.card-bodegon-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Badges & Pills */
+.badge-category {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border-main);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-highlight {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+}
+
+.badge-warm {
+  background-color: var(--color-accent-light);
+  color: #2c1600;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+}
+
+/* Interactive Cooking Timer Box */
+.timer-container {
+  background-color: var(--color-primary-light);
+  border: 1px solid rgba(161, 212, 148, 0.3);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+}
+
+.timer-digits {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+/* Step Number Badges */
+.step-number-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Custom Form Fields */
+.input-bodegon, .select-bodegon, .textarea-bodegon {
+  background-color: var(--color-surface-bg);
+  border: 1px solid var(--color-border-main);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-main);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%;
+}
+
+.input-bodegon:focus, .select-bodegon:focus, .textarea-bodegon:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(21, 66, 18, 0.15);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-muted);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-main);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-faint);
+}
+
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-float {
+  animation: floatGentle 3s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   PRINT STYLES FOR RECIPES (Kitchen Print Sheet)
+   ========================================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  nav, footer, .no-print, button {
+    display: none !important;
+  }
+
+  .card-bodegon {
+    border: 1px solid #cccccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3 {
+    color: #000000 !important;
+  }
+}
