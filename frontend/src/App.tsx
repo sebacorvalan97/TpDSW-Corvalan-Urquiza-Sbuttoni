@@ -1,22 +1,22 @@
 import { useState, useMemo } from 'react';
-import type { 
-  Receta, 
-  Categoria, 
-  Origen, 
-  Dificultad, 
-  Ingrediente, 
-  Usuario, 
-  Comentario 
+import type {
+  Receta,
+  Categoria,
+  Origen,
+  Dificultad,
+  Ingrediente,
+  Usuario,
+  Comentario,
 } from './types';
 
-import { 
-  INITIAL_CATEGORIAS, 
-  INITIAL_ORIGENES, 
-  INITIAL_DIFICULTADES, 
-  INITIAL_INGREDIENTES, 
-  INITIAL_RECETAS, 
-  INITIAL_USUARIOS, 
-  INITIAL_COMENTARIOS 
+import {
+  INITIAL_CATEGORIAS,
+  INITIAL_ORIGENES,
+  INITIAL_DIFICULTADES,
+  INITIAL_INGREDIENTES,
+  INITIAL_RECETAS,
+  INITIAL_USUARIOS,
+  INITIAL_COMENTARIOS,
 } from './data/mockData';
 
 import Navbar from './components/Navbar';
@@ -28,19 +28,25 @@ import AdminCrudPanel from './components/AdminCrudPanel';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
+import { PlatoCrud } from './components/PlatoCrud';
 
 export default function App() {
   // Global App States
   const [recetas, setRecetas] = useState<Receta[]>(INITIAL_RECETAS);
   const [categorias, setCategorias] = useState<Categoria[]>(INITIAL_CATEGORIAS);
   const [origenes, setOrigenes] = useState<Origen[]>(INITIAL_ORIGENES);
-  const [dificultades, setDificultades] = useState<Dificultad[]>(INITIAL_DIFICULTADES);
-  const [ingredientes, setIngredientes] = useState<Ingrediente[]>(INITIAL_INGREDIENTES);
+  const [dificultades, setDificultades] =
+    useState<Dificultad[]>(INITIAL_DIFICULTADES);
+  const [ingredientes, setIngredientes] =
+    useState<Ingrediente[]>(INITIAL_INGREDIENTES);
   const [usuarios, setUsuarios] = useState<Usuario[]>(INITIAL_USUARIOS);
-  const [comentarios, setComentarios] = useState<Comentario[]>(INITIAL_COMENTARIOS);
+  const [comentarios, setComentarios] =
+    useState<Comentario[]>(INITIAL_COMENTARIOS);
 
   const [currentUser, setCurrentUser] = useState<Usuario>(INITIAL_USUARIOS[0]);
-  const [currentTab, setCurrentTab] = useState<'recipes' | 'ranking' | 'create' | 'admin' | 'substitutes' | 'favorites'>('recipes');
+  const [currentTab, setCurrentTab] = useState<
+    'recipes' | 'ranking' | 'create' | 'admin' | 'substitutes' | 'favorites'
+  >('recipes');
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -62,15 +68,15 @@ export default function App() {
     { id: 'cat-postres', label: 'Postres', icon: 'cake' },
     { id: 'cat-carnes', label: 'Cena', icon: 'dinner_dining' },
     { id: 'cat-mexicana', label: 'Mexicana', icon: 'restaurant' },
-    { id: 'cat-asiatica', label: 'Asiático', icon: 'ramen_dining' }
+    { id: 'cat-asiatica', label: 'Asiático', icon: 'ramen_dining' },
   ];
 
   // Toggle favorite
   const handleToggleFavorite = (recetaId: string) => {
     setRecetas((prev) =>
       prev.map((r) =>
-        r.id === recetaId ? { ...r, esFavorito: !r.esFavorito } : r
-      )
+        r.id === recetaId ? { ...r, esFavorito: !r.esFavorito } : r,
+      ),
     );
   };
 
@@ -85,14 +91,18 @@ export default function App() {
       calificacion: rating,
       texto: text,
       fecha: new Date().toISOString().split('T')[0],
-      likes: 0
+      likes: 0,
     };
 
     const updatedComments = [newComment, ...comentarios];
     setComentarios(updatedComments);
 
-    const recipeComments = updatedComments.filter((c) => c.recetaId === recetaId);
-    const avg = recipeComments.reduce((acc, c) => acc + c.calificacion, 0) / recipeComments.length;
+    const recipeComments = updatedComments.filter(
+      (c) => c.recetaId === recetaId,
+    );
+    const avg =
+      recipeComments.reduce((acc, c) => acc + c.calificacion, 0) /
+      recipeComments.length;
 
     setRecetas((prev) =>
       prev.map((r) =>
@@ -100,26 +110,30 @@ export default function App() {
           ? {
               ...r,
               calificacionPromedio: avg,
-              totalCalificaciones: recipeComments.length
+              totalCalificaciones: recipeComments.length,
             }
-          : r
-      )
+          : r,
+      ),
     );
 
     if (selectedRecipe && selectedRecipe.id === recetaId) {
-      setSelectedRecipe((prev) => prev ? {
-        ...prev,
-        calificacionPromedio: avg,
-        totalCalificaciones: recipeComments.length
-      } : null);
+      setSelectedRecipe((prev) =>
+        prev
+          ? {
+              ...prev,
+              calificacionPromedio: avg,
+              totalCalificaciones: recipeComments.length,
+            }
+          : null,
+      );
     }
   };
 
   const handleLikeComment = (comentarioId: string) => {
     setComentarios((prev) =>
       prev.map((c) =>
-        c.id === comentarioId ? { ...c, likes: c.likes + 1 } : c
-      )
+        c.id === comentarioId ? { ...c, likes: c.likes + 1 } : c,
+      ),
     );
   };
 
@@ -127,7 +141,9 @@ export default function App() {
   const handleSaveRecipe = (recipeData: Partial<Receta>) => {
     if (editingRecipe) {
       setRecetas((prev) =>
-        prev.map((r) => (r.id === editingRecipe.id ? { ...r, ...recipeData } as Receta : r))
+        prev.map((r) =>
+          r.id === editingRecipe.id ? ({ ...r, ...recipeData } as Receta) : r,
+        ),
       );
       setEditingRecipe(null);
     } else {
@@ -144,7 +160,7 @@ export default function App() {
         totalCalificaciones: 1,
         creadorUsuarioId: currentUser.id,
         creadorNombre: currentUser.nombre,
-        esFavorito: false
+        esFavorito: false,
       };
       setRecetas([newRec, ...recetas]);
     }
@@ -159,7 +175,7 @@ export default function App() {
     ingredienteId: string,
     nombreSustituto: string,
     proporcion: string,
-    notas: string
+    notas: string,
   ) => {
     setIngredientes((prev) =>
       prev.map((ing) => {
@@ -169,15 +185,15 @@ export default function App() {
             ingredientePrincipalId: ingredienteId,
             nombreSustituto,
             proporcion,
-            notas
+            notas,
           };
           return {
             ...ing,
-            sustitutos: [...(ing.sustitutos || []), newSub]
+            sustitutos: [...(ing.sustitutos || []), newSub],
           };
         }
         return ing;
-      })
+      }),
     );
   };
 
@@ -186,7 +202,7 @@ export default function App() {
       id: 'ing-' + Date.now(),
       nombre,
       unidadMedidaDefecto: unidad,
-      sustitutos: []
+      sustitutos: [],
     };
     setIngredientes((prev) => [...prev, newIng]);
     return newIng;
@@ -197,7 +213,10 @@ export default function App() {
     return recetas.filter((r) => {
       if (currentTab === 'favorites' && !r.esFavorito) return false;
 
-      if (selectedCategory !== 'all' && r.plato.categoriaId !== selectedCategory) {
+      if (
+        selectedCategory !== 'all' &&
+        r.plato.categoriaId !== selectedCategory
+      ) {
         return false;
       }
 
@@ -205,11 +224,17 @@ export default function App() {
         return false;
       }
 
-      if (selectedDifficulty !== 'all' && r.plato.dificultadId !== selectedDifficulty) {
+      if (
+        selectedDifficulty !== 'all' &&
+        r.plato.dificultadId !== selectedDifficulty
+      ) {
         return false;
       }
 
-      if (selectedMaxTime !== 'all' && (r.tiempoPreparacionMin + r.tiempoCoccionMin) > selectedMaxTime) {
+      if (
+        selectedMaxTime !== 'all' &&
+        r.tiempoPreparacionMin + r.tiempoCoccionMin > selectedMaxTime
+      ) {
         return false;
       }
 
@@ -221,7 +246,9 @@ export default function App() {
         const orig = origenes.find((o) => o.id === r.plato.origenId);
         const matchCat = cat?.nombre.toLowerCase().includes(query);
         const matchOrig = orig?.pais.toLowerCase().includes(query);
-        const matchIng = r.ingredientes.some((i) => i.nombre.toLowerCase().includes(query));
+        const matchIng = r.ingredientes.some((i) =>
+          i.nombre.toLowerCase().includes(query),
+        );
 
         if (!matchName && !matchDesc && !matchCat && !matchOrig && !matchIng) {
           return false;
@@ -239,7 +266,7 @@ export default function App() {
     selectedMaxTime,
     searchQuery,
     categorias,
-    origenes
+    origenes,
   ]);
 
   const favoritesCount = recetas.filter((r) => r.esFavorito).length;
@@ -278,7 +305,6 @@ export default function App() {
 
       {/* Main Container with Sidebar + Canvas */}
       <div className="flex max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-12 py-6 gap-8 flex-1">
-        
         {/* Left Sidebar (Desktop) */}
         <Sidebar
           currentTab={currentTab}
@@ -300,61 +326,75 @@ export default function App() {
 
         {/* Center / Main Content Canvas */}
         <main className="flex-1 min-w-0 space-y-8">
-          
           {/* VIEW: DISCOVER / RECIPES / FAVORITES */}
           {(currentTab === 'recipes' || currentTab === 'favorites') && (
             <>
               {/* FEATURED HERO BANNER (matching guide) */}
-              {featuredRecipe && currentTab === 'recipes' && !searchQuery && selectedCategory === 'all' && (
-                <section className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden shadow-lg group border border-[#c2c9bb]/30">
-                  <div
-                    className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: `url('${featuredRecipe.plato.imagenUrl}')` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                  
-                  <div className="absolute bottom-0 left-0 p-6 sm:p-8 md:p-10 text-white max-w-2xl">
-                    <div className="flex gap-2 mb-3">
-                      <span className="bg-[#6d4820]/90 backdrop-blur-md text-[#ecb987] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
-                        Destacado de Hoy
-                      </span>
-                      <span className="bg-[#154212]/90 backdrop-blur-md text-white px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
-                        Selección Saludable
-                      </span>
-                    </div>
+              {featuredRecipe &&
+                currentTab === 'recipes' &&
+                !searchQuery &&
+                selectedCategory === 'all' && (
+                  <section className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden shadow-lg group border border-[#c2c9bb]/30">
+                    <div
+                      className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                      style={{
+                        backgroundImage: `url('${featuredRecipe.plato.imagenUrl}')`,
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
-                    <h1 className="font-serif-display text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
-                      {featuredRecipe.plato.nombre}
-                    </h1>
-
-                    <p className="text-xs sm:text-sm text-white/90 mb-4 line-clamp-2 leading-relaxed">
-                      {featuredRecipe.plato.descripcion}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">schedule</span>
-                        <span>{featuredRecipe.tiempoPreparacionMin + featuredRecipe.tiempoCoccionMin} Mins</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">trending_up</span>
-                        <span>Dificultad Intermedia</span>
+                    <div className="absolute bottom-0 left-0 p-6 sm:p-8 md:p-10 text-white max-w-2xl">
+                      <div className="flex gap-2 mb-3">
+                        <span className="bg-[#6d4820]/90 backdrop-blur-md text-[#ecb987] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
+                          Destacado de Hoy
+                        </span>
+                        <span className="bg-[#154212]/90 backdrop-blur-md text-white px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
+                          Selección Saludable
+                        </span>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setSelectedRecipe(featuredRecipe);
-                          setIsCookingDirect(true);
-                        }}
-                        className="ml-auto bg-white text-[#154212] px-5 py-2.5 rounded-lg font-bold hover:bg-[#bcf0ae] transition-colors flex items-center gap-2 shadow-md active:scale-95"
-                      >
-                        <span>Cocinar Ahora</span>
-                        <span className="material-symbols-outlined text-base">play_circle</span>
-                      </button>
+                      <h1 className="font-serif-display text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
+                        {featuredRecipe.plato.nombre}
+                      </h1>
+
+                      <p className="text-xs sm:text-sm text-white/90 mb-4 line-clamp-2 leading-relaxed">
+                        {featuredRecipe.plato.descripcion}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">
+                            schedule
+                          </span>
+                          <span>
+                            {featuredRecipe.tiempoPreparacionMin +
+                              featuredRecipe.tiempoCoccionMin}{' '}
+                            Mins
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">
+                            trending_up
+                          </span>
+                          <span>Dificultad Intermedia</span>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedRecipe(featuredRecipe);
+                            setIsCookingDirect(true);
+                          }}
+                          className="ml-auto bg-white text-[#154212] px-5 py-2.5 rounded-lg font-bold hover:bg-[#bcf0ae] transition-colors flex items-center gap-2 shadow-md active:scale-95"
+                        >
+                          <span>Cocinar Ahora</span>
+                          <span className="material-symbols-outlined text-base">
+                            play_circle
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </section>
-              )}
+                  </section>
+                )}
 
               {/* QUICK CATEGORIES (matching guide) */}
               <section className="space-y-3">
@@ -362,7 +402,11 @@ export default function App() {
                   <h2 className="font-serif-display text-xl md:text-2xl font-bold text-[#154212]">
                     Categorías Rápidas
                   </h2>
-                  {(selectedCategory !== 'all' || selectedOrigin !== 'all' || selectedDifficulty !== 'all' || selectedMaxTime !== 'all' || searchQuery) && (
+                  {(selectedCategory !== 'all' ||
+                    selectedOrigin !== 'all' ||
+                    selectedDifficulty !== 'all' ||
+                    selectedMaxTime !== 'all' ||
+                    searchQuery) && (
                     <button
                       onClick={resetFilters}
                       className="text-xs font-bold text-[#154212] hover:underline"
@@ -378,20 +422,32 @@ export default function App() {
                     return (
                       <div
                         key={item.id}
-                        onClick={() => setSelectedCategory(isSelected ? 'all' : item.id)}
+                        onClick={() =>
+                          setSelectedCategory(isSelected ? 'all' : item.id)
+                        }
                         className="group cursor-pointer"
                       >
-                        <div className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md ${
-                          isSelected
-                            ? 'bg-[#bcf0ae] border-[#154212] shadow-sm'
-                            : 'bg-white border-[#c2c9bb] hover:bg-[#f6f3f2]'
-                        }`}>
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                            isSelected ? 'bg-[#154212] text-[#bcf0ae]' : 'bg-[#f0eded] text-[#154212] group-hover:bg-white'
-                          }`}>
-                            <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                        <div
+                          className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md ${
+                            isSelected
+                              ? 'bg-[#bcf0ae] border-[#154212] shadow-sm'
+                              : 'bg-white border-[#c2c9bb] hover:bg-[#f6f3f2]'
+                          }`}
+                        >
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? 'bg-[#154212] text-[#bcf0ae]'
+                                : 'bg-[#f0eded] text-[#154212] group-hover:bg-white'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-2xl">
+                              {item.icon}
+                            </span>
                           </div>
-                          <span className={`text-xs font-semibold ${isSelected ? 'text-[#154212] font-bold' : 'text-[#605e5b] group-hover:text-[#154212]'}`}>
+                          <span
+                            className={`text-xs font-semibold ${isSelected ? 'text-[#154212] font-bold' : 'text-[#605e5b] group-hover:text-[#154212]'}`}
+                          >
                             {item.label}
                           </span>
                         </div>
@@ -427,7 +483,9 @@ export default function App() {
                     >
                       <option value="all">Todas las Categorías</option>
                       {categorias.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -441,7 +499,9 @@ export default function App() {
                     >
                       <option value="all">Toda Dificultad</option>
                       {dificultades.map((d) => (
-                        <option key={d.id} value={d.id}>{d.nivel}</option>
+                        <option key={d.id} value={d.id}>
+                          {d.nivel}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -455,7 +515,9 @@ export default function App() {
                     >
                       <option value="all">Todos los Orígenes</option>
                       {origenes.map((o) => (
-                        <option key={o.id} value={o.id}>{o.bandera} {o.pais}</option>
+                        <option key={o.id} value={o.id}>
+                          {o.bandera} {o.pais}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -464,7 +526,13 @@ export default function App() {
                   <div className="relative">
                     <select
                       value={selectedMaxTime}
-                      onChange={(e) => setSelectedMaxTime(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                      onChange={(e) =>
+                        setSelectedMaxTime(
+                          e.target.value === 'all'
+                            ? 'all'
+                            : Number(e.target.value),
+                        )
+                      }
                       className="bg-[#fbf9f8] border border-[#c2c9bb] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#42493e] focus:outline-hidden"
                     >
                       <option value="all">Cualquier Tiempo</option>
@@ -484,7 +552,8 @@ export default function App() {
                   </button>
 
                   <span className="ml-auto text-xs text-[#605e5b]">
-                    Mostrando <strong>{filteredRecetas.length}</strong> de {recetas.length} recetas
+                    Mostrando <strong>{filteredRecetas.length}</strong> de{' '}
+                    {recetas.length} recetas
                   </span>
                 </div>
               </section>
@@ -494,7 +563,9 @@ export default function App() {
                 <div className="flex justify-between items-end">
                   <div>
                     <h2 className="font-serif-display text-xl md:text-2xl font-bold text-[#154212]">
-                      {currentTab === 'favorites' ? 'Tus Recetas Favoritas' : 'Últimas Recetas'}
+                      {currentTab === 'favorites'
+                        ? 'Tus Recetas Favoritas'
+                        : 'Últimas Recetas'}
                     </h2>
                     <p className="text-xs text-[#605e5b]">
                       Frescas y seleccionadas para tu viaje culinario
@@ -511,7 +582,8 @@ export default function App() {
                       No se encontraron recetas
                     </h3>
                     <p className="text-xs text-[#605e5b] max-w-sm mx-auto">
-                      Intenta buscar con otros términos o limpia los filtros seleccionados.
+                      Intenta buscar con otros términos o limpia los filtros
+                      seleccionados.
                     </p>
                     <button
                       onClick={resetFilters}
@@ -570,34 +642,34 @@ export default function App() {
           {/* VIEW: ADMIN CRUD PANEL */}
           {currentTab === 'admin' && (
             <>
+              <PlatoCrud />
               <UserCrud />
               <AdminCrudPanel
-              recetas={recetas}
-              categorias={categorias}
-              origenes={origenes}
-              dificultades={dificultades}
-              ingredientes={ingredientes}
-              usuarios={usuarios}
-              comentarios={comentarios}
-              setRecetas={setRecetas}
-              setCategorias={setCategorias}
-              setOrigenes={setOrigenes}
-              setDificultades={setDificultades}
-              setIngredientes={setIngredientes}
-              setUsuarios={setUsuarios}
-              setComentarios={setComentarios}
-              onOpenCreateRecipe={() => {
-                setEditingRecipe(null);
-                setIsWizardOpen(true);
-              }}
-              onEditRecipe={(r) => {
-                setEditingRecipe(r);
-                setIsWizardOpen(true);
-              }}
+                recetas={recetas}
+                categorias={categorias}
+                origenes={origenes}
+                dificultades={dificultades}
+                ingredientes={ingredientes}
+                usuarios={usuarios}
+                comentarios={comentarios}
+                setRecetas={setRecetas}
+                setCategorias={setCategorias}
+                setOrigenes={setOrigenes}
+                setDificultades={setDificultades}
+                setIngredientes={setIngredientes}
+                setUsuarios={setUsuarios}
+                setComentarios={setComentarios}
+                onOpenCreateRecipe={() => {
+                  setEditingRecipe(null);
+                  setIsWizardOpen(true);
+                }}
+                onEditRecipe={(r) => {
+                  setEditingRecipe(r);
+                  setIsWizardOpen(true);
+                }}
               />
             </>
           )}
-
         </main>
       </div>
 
@@ -618,7 +690,9 @@ export default function App() {
         <button
           onClick={() => setCurrentTab('favorites')}
           className={`flex flex-col items-center justify-center ${
-            currentTab === 'favorites' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
+            currentTab === 'favorites'
+              ? 'text-[#154212] font-bold'
+              : 'text-[#605e5b]'
           }`}
         >
           <span className="material-symbols-outlined">menu_book</span>
@@ -628,7 +702,9 @@ export default function App() {
         <button
           onClick={() => setCurrentTab('recipes')}
           className={`flex flex-col items-center justify-center px-3 py-1 rounded-full ${
-            currentTab === 'recipes' ? 'bg-[#2d5a27] text-[#ffffff] font-bold' : 'text-[#605e5b]'
+            currentTab === 'recipes'
+              ? 'bg-[#2d5a27] text-[#ffffff] font-bold'
+              : 'text-[#605e5b]'
           }`}
         >
           <span className="material-symbols-outlined">explore</span>
@@ -649,7 +725,9 @@ export default function App() {
         <button
           onClick={() => setCurrentTab('ranking')}
           className={`flex flex-col items-center justify-center ${
-            currentTab === 'ranking' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
+            currentTab === 'ranking'
+              ? 'text-[#154212] font-bold'
+              : 'text-[#605e5b]'
           }`}
         >
           <span className="material-symbols-outlined">military_tech</span>
@@ -659,7 +737,9 @@ export default function App() {
         <button
           onClick={() => setCurrentTab('substitutes')}
           className={`flex flex-col items-center justify-center ${
-            currentTab === 'substitutes' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
+            currentTab === 'substitutes'
+              ? 'text-[#154212] font-bold'
+              : 'text-[#605e5b]'
           }`}
         >
           <span className="material-symbols-outlined">kitchen</span>
@@ -713,7 +793,9 @@ export default function App() {
       <footer className="mt-auto bg-[#154212] text-white/80 text-xs py-8 border-t border-[#23501e]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="font-serif-display text-lg font-bold text-white">El Bodegón Digital</span>
+            <span className="font-serif-display text-lg font-bold text-white">
+              El Bodegón Digital
+            </span>
             <p className="text-[11px] text-[#bcf0ae] mt-0.5">
               Trabajo Práctico DSW • UTN FRT • Corvalan, Sbuttoni, Urquiza
             </p>
