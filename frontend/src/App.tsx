@@ -28,6 +28,9 @@ import AdminCrudPanel from './components/AdminCrudPanel';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
+import CategoryCrud from './components/CategoryCrud';
+import IngredientCrud from './components/IngredientCrud';
+
 
 export default function App() {
   // Global App States
@@ -571,6 +574,8 @@ export default function App() {
           {currentTab === 'admin' && (
             <>
               <UserCrud />
+              <CategoryCrud />
+              <IngredientCrud />
               <AdminCrudPanel
               recetas={recetas}
               categorias={categorias}

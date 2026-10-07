@@ -7,6 +7,7 @@
  * Flujo de una petición:  Ruta → Controller → **Service** → Repository
  */
 import { HttpError } from '../shared/errors/http-error.js';
+import { parseId } from '../shared/utils/parse-id.js';
 import {
     categoryRepository,
     type Category,
@@ -15,18 +16,6 @@ import {
 
 const NOMBRE_MAX = 50;
 const DESCRIPCION_MAX = 200;
-
-/**
- * Convierte el id que llega por la URL (siempre es texto, ej. "3") en número,
- * y verifica que sea un entero positivo. Si no, responde error 400.
- */
-function parseId(rawId: unknown): number {
-    const id = Number(rawId);
-    if (!Number.isInteger(id) || id <= 0) {
-        throw new HttpError(400, 'El id debe ser un número entero positivo');
-    }
-    return id;
-}
 
 /**
  * Valida el body que manda el cliente. Recibe `unknown` (puede venir cualquier cosa)
