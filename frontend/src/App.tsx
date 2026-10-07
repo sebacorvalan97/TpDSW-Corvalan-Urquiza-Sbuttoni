@@ -31,6 +31,7 @@ import UserCrud from './components/UserCrud';
 import PlatoCrud from './components/PlatoCrud';
 import PasoRecetaCrud from './components/PasoRecetaCrud';
 import RecetaCrud from './components/RecetaCrud';
+import AgregarIngredientesAReceta from './components/AgregarIngredientesAReceta';
 export default function App() {
   // Global App States
   const [recetas, setRecetas] = useState<Receta[]>(INITIAL_RECETAS);
@@ -671,6 +672,7 @@ export default function App() {
               <PlatoCrud />
               <PasoRecetaCrud />
               <RecetaCrud />
+              <AgregarIngredientesAReceta recetaId={1} />
             </>
           )}
         </main>

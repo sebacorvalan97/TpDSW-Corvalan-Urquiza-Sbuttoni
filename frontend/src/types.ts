@@ -68,9 +68,18 @@ export interface Comentario {
   fecha: string;
   likes: number;
 }
+
 export interface PasoReceta {
   idPaso: number;
   recetaId: number;
   numeroOrden: number;
   descripcion: string;
+}
+
+export interface RecetaIngrediente {
+  idRecetaIngrediente: number;
+  recetaId: number;
+  ingredienteId: number;
+  cantidad: number;
+  unidad: string;
 }
