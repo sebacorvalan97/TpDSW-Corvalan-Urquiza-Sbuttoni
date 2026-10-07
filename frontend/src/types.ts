@@ -1,4 +1,4 @@
-interface Categoria {
+export interface Categoria {
   id: string;
   nombre: string;
 }
@@ -9,25 +9,25 @@ interface Origen {
   bandera: string;
 }
 
-interface Dificultad {
+export interface Dificultad {
   id: string;
   nivel: string;
 }
 
-interface Plato {
+export interface Plato {
   idDish: number;
   name: string;
   description: string;
 }
 
-interface Ingrediente {
+export interface Ingrediente {
   id: string;
   nombre: string;
   unidadMedidaDefecto: string;
   sustitutos?: Sustituto[];
 }
 
-interface Sustituto {
+export interface Sustituto {
   id: string;
   ingredientePrincipalId: string;
   nombreSustituto: string;
@@ -35,7 +35,7 @@ interface Sustituto {
   notas: string;
 }
 
-interface Receta {
+export interface Receta {
   id: string;
   platoId: string;
   plato: Plato;
@@ -51,13 +51,13 @@ interface Receta {
   esFavorito: boolean;
 }
 
-interface Usuario {
+export interface Usuario {
   id: string;
   nombre: string;
   avatar: string;
 }
 
-interface Comentario {
+export interface Comentario {
   id: string;
   recetaId: string;
   usuarioId: string;
@@ -67,4 +67,10 @@ interface Comentario {
   texto: string;
   fecha: string;
   likes: number;
+}
+export interface PasoReceta {
+  idPaso: number;
+  recetaId: number;
+  numeroOrden: number;
+  descripcion: string;
 }

@@ -9,7 +9,7 @@ export interface Plato {
   description: string;
 }
 
-export function PlatoCrud() {
+export default function PlatoCrud() {
   const [platos, setPlatos] = useState<Plato[]>([]);
   const [platoEditando, setPlatoEditando] = useState<Plato | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -65,8 +65,11 @@ export function PlatoCrud() {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Gestión de Platos</h1>
+    <div className="space-y-6 p-6 bg-white rounded-2xl border border-[#c2c9bb]/60">
+      <h1 className="font-serif-display text-2xl font-bold text-[#154212]">
+        Gestión de Platos
+      </h1>
+
       {mostrarForm ? (
         <PlatoForm
           platoEditando={platoEditando}
@@ -74,7 +77,12 @@ export function PlatoCrud() {
           onCancel={handleCancel}
         />
       ) : (
-        <button onClick={() => setMostrarForm(true)}>+ Crear Plato</button>
+        <button
+          onClick={() => setMostrarForm(true)}
+          className="bg-[#154212] text-white px-5 py-2.5 rounded-lg font-bold hover:bg-[#2d5a27] transition-colors"
+        >
+          + Crear plato
+        </button>
       )}
 
       <PlatoList platos={platos} onEdit={handleEdit} onDelete={handleDelete} />

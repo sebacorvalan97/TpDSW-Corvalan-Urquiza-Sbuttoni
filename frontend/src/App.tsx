@@ -28,8 +28,9 @@ import AdminCrudPanel from './components/AdminCrudPanel';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
-import { PlatoCrud } from './components/PlatoCrud';
-
+import PlatoCrud from './components/PlatoCrud';
+import PasoRecetaCrud from './components/PasoRecetaCrud';
+import RecetaCrud from './components/RecetaCrud';
 export default function App() {
   // Global App States
   const [recetas, setRecetas] = useState<Receta[]>(INITIAL_RECETAS);
@@ -667,6 +668,9 @@ export default function App() {
                   setIsWizardOpen(true);
                 }}
               />
+              <PlatoCrud />
+              <PasoRecetaCrud />
+              <RecetaCrud />
             </>
           )}
         </main>
