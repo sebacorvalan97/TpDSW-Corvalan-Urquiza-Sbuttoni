@@ -1,49 +1,41 @@
-import { Request, Response } from "express";
-import { categoryRepository } from "../shared/repositories/category.repository.js";
+/**
+ * CAPA DE CONTROLADOR (Controller) de Categorías.
+ *
+ * Es el "traductor" entre HTTP y nuestro código: toma lo que llega en la petición
+ * (req.params, req.body), se lo pasa al servicio y arma la respuesta (status + JSON).
+ * NO tiene reglas de negocio: eso es trabajo del servicio.
+ *
+ * Los errores no se capturan acá: si el servicio lanza un HttpError, Express (v5) lo
+ * envía solo al middleware de errores (middlewares/error-handler.ts).
+ */
+import type { Request, Response } from 'express';
+import { categoryService } from '../services/category.service.js';
 
 export const categoryController = {
-    getAllCategories: (req: Request, res: Response) => {
-        const categories = categoryRepository.getAllCategories();
-        res.json(categories);
+    // GET /api/categories → lista todas
+    getAllCategories: (_req: Request, res: Response) => {
+        res.json(categoryService.getAll());
     },
-    
-    createCategory: (req: Request, res: Response) => {
-        const { nombre, descripcion } = req.body;
-        const newCategory = categoryRepository.createCategory(nombre, descripcion);
-        res.status(201).json(newCategory);
-    },
-    
-    updateCategory: (req: Request, res: Response) => {
-        const idCategory = parseInt(req.params.id as string);
-        const newData = req.body;
-        const category = categoryRepository.updateCategory(idCategory, newData);
 
-        if (category) {
-            res.json(category);
-        } else {
-            res.status(404).json({ message: 'Categoría no encontrada' });
-        }
-    },
-    
-    deleteCategory: (req: Request, res: Response) => {
-        const idCategory = parseInt(req.params.id as string);
-        const category = categoryRepository.deleteCategory(idCategory);
-
-        if (category) {
-            res.json({ message: 'Categoría eliminada correctamente' });
-        } else {
-            res.status(404).json({ message: 'Categoría no encontrada' });
-        }
-    },
-    
+    // GET /api/categories/:id → una sola
     getCategoryById: (req: Request, res: Response) => {
-        const idCategory = parseInt(req.params.id as string);
-        const category = categoryRepository.getCategoryById(idCategory);
+        res.json(categoryService.getById(req.params.id));
+    },
 
-        if (category) {
-            res.json(category);
-        } else {
-            res.status(404).json({ message: 'Categoría no encontrada' });
-        }
-    }
+    // POST /api/categories → crea. Responde 201 (Created) con la categoría nueva.
+    createCategory: (req: Request, res: Response) => {
+        const created = categoryService.create(req.body);
+        res.status(201).json(created);
+    },
+
+    // PUT /api/categories/:id → modifica
+    updateCategory: (req: Request, res: Response) => {
+        res.json(categoryService.update(req.params.id, req.body));
+    },
+
+    // DELETE /api/categories/:id → elimina. Responde 204 (No Content): salió bien, sin cuerpo.
+    deleteCategory: (req: Request, res: Response) => {
+        categoryService.remove(req.params.id);
+        res.status(204).send();
+    },
 };

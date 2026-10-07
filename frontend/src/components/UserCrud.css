@@ -1,5 +1,5 @@
 .crud-container { padding: 1.5rem; background: #fff; border: 1px solid #c2c9bb; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, .03); }
-.crud-title { margin: 0 0 1.25rem; color: #154212; font-size: 1.5rem; }
+.crud-title { margin: 0 0 1.25rem; color: #154212; font-size: 1.5rem; font-weight: 700; }
 .crud-form { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 1rem; background: #fbf9f8; border-radius: .75rem; }
 .crud-input, .crud-select { flex: 1; min-width: 180px; padding: .65rem .8rem; border: 1px solid #c2c9bb; border-radius: .5rem; }
 .btn { padding: .65rem .9rem; border: 0; border-radius: .5rem; color: #fff; font-weight: 700; cursor: pointer; }

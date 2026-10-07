@@ -1,5 +1,3 @@
-import {createBrotliCompress} from "zlib";
-
 export interface User {
     idUser: number;
     name: string;

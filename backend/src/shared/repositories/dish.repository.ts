@@ -1,5 +1,3 @@
-import {createBrotliCompress} from "zlib";
-
 export interface Dish {
     idDish: number;
     description: string;
