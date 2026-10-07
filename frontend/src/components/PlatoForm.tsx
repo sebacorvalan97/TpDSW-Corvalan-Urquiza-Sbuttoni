@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Plato } from '../types';
+
+// Definimos la interfaz aquí mismo para evitar conflictos de módulos con Vite
+export interface Plato {
+  idDish: number;
+  name: string;
+  description: string;
+}
 
 interface PlatoFormProps {
   platoEditando?: Plato | null;

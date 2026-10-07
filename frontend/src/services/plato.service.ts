@@ -1,4 +1,9 @@
-import { Plato } from '../types';
+// Definimos la interfaz aquí mismo para evitar el conflicto de módulos con types.ts
+export interface Plato {
+  idDish: number;
+  name: string;
+  description: string;
+}
 
 const API_URL = 'http://localhost:8080/api/dishes';
 

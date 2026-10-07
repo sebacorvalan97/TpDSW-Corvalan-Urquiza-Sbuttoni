@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Plato } from '../types';
 import { platoService } from '../services/plato.service';
 import { PlatoForm } from './PlatoForm';
 import { PlatoList } from './PlatoList';
+
+export interface Plato {
+  idDish: number;
+  name: string;
+  description: string;
+}
 
 export function PlatoCrud() {
   const [platos, setPlatos] = useState<Plato[]>([]);
   const [platoEditando, setPlatoEditando] = useState<Plato | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
 
-  // Cargar platos al montar
   useEffect(() => {
     cargarPlatos();
   }, []);
@@ -61,7 +65,7 @@ export function PlatoCrud() {
   };
 
   return (
-    <div>
+    <div style={{ padding: '20px' }}>
       <h1>Gestión de Platos</h1>
       {mostrarForm ? (
         <PlatoForm
@@ -70,8 +74,9 @@ export function PlatoCrud() {
           onCancel={handleCancel}
         />
       ) : (
-        <button onClick={() => setMostrarForm(true)}>+ Crear plato</button>
+        <button onClick={() => setMostrarForm(true)}>+ Crear Plato</button>
       )}
+
       <PlatoList platos={platos} onEdit={handleEdit} onDelete={handleDelete} />
     </div>
   );

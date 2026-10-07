@@ -1,4 +1,9 @@
-import { Plato } from '../types';
+// Definimos el tipo Plato localmente para evitar errores de módulos
+export interface Plato {
+  idDish: number;
+  name: string;
+  description: string;
+}
 
 interface PlatoListProps {
   platos: Plato[];

@@ -642,7 +642,6 @@ export default function App() {
           {/* VIEW: ADMIN CRUD PANEL */}
           {currentTab === 'admin' && (
             <>
-              <PlatoCrud />
               <UserCrud />
               <AdminCrudPanel
                 recetas={recetas}
