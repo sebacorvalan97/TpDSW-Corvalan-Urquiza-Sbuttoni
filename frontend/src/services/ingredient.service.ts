@@ -25,3 +25,4 @@ export const ingredientService = {
     // DELETE /api/ingredients/:id  → elimina
     remove: (id: number) => request<void>(`${API_URL}/${id}`, { method: 'DELETE' }),
 };
+//ah¿ghrego algo como para ver que pasa que cande no peude ver mis archivos de front  
