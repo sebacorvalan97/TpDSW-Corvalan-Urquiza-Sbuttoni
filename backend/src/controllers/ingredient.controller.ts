@@ -1,49 +1,41 @@
-import { Request, Response } from "express";
-import { ingredientRepository } from "../shared/repositories/ingredient.repository.js";
+/**
+ * CAPA DE CONTROLADOR (Controller) de Ingredientes.
+ *
+ * Es el "traductor" entre HTTP y nuestro código: toma lo que llega en la petición
+ * (req.params, req.body), se lo pasa al servicio y arma la respuesta (status + JSON).
+ * NO tiene reglas de negocio: eso es trabajo del servicio.
+ *
+ * Los errores no se capturan acá: si el servicio lanza un HttpError, Express (v5) lo
+ * envía solo al middleware de errores (middlewares/error-handler.ts).
+ */
+import type { Request, Response } from 'express';
+import { ingredientService } from '../services/ingredient.service.js';
 
 export const ingredientController = {
-    getAllIngredients: (req: Request, res: Response) => {
-        const ingredients = ingredientRepository.getAllIngredients();
-        res.json(ingredients);
+    // GET /api/ingredients → lista todos
+    getAllIngredients: (_req: Request, res: Response) => {
+        res.json(ingredientService.getAll());
     },
-    
-    createIngredient: (req: Request, res: Response) => {
-        const { nombre, descripcion } = req.body;
-        const newIngredient = ingredientRepository.createIngredient(nombre, descripcion);
-        res.status(201).json(newIngredient);
-    },
-    
-    updateIngredient: (req: Request, res: Response) => {
-        const idIngredient = parseInt(req.params.id as string);
-        const newData = req.body;
-        const ingredient = ingredientRepository.updateIngredient(idIngredient, newData);
 
-        if (ingredient) {
-            res.json(ingredient);
-        } else {
-            res.status(404).json({ message: 'Ingrediente no encontrado' });
-        }
-    },
-    
-    deleteIngredient: (req: Request, res: Response) => {
-        const idIngredient = parseInt(req.params.id as string);
-        const ingredient = ingredientRepository.deleteIngredient(idIngredient);
-
-        if (ingredient) {
-            res.json({ message: 'Ingrediente eliminado correctamente' });
-        } else {
-            res.status(404).json({ message: 'Ingrediente no encontrado' });
-        }
-    },
-    
+    // GET /api/ingredients/:id → uno solo
     getIngredientById: (req: Request, res: Response) => {
-        const idIngredient = parseInt(req.params.id as string);
-        const ingredient = ingredientRepository.getIngredientById(idIngredient);
+        res.json(ingredientService.getById(req.params.id));
+    },
 
-        if (ingredient) {
-            res.json(ingredient);
-        } else {
-            res.status(404).json({ message: 'Ingrediente no encontrado' });
-        }
-    }
+    // POST /api/ingredients → crea. Responde 201 (Created) con el ingrediente nuevo.
+    createIngredient: (req: Request, res: Response) => {
+        const created = ingredientService.create(req.body);
+        res.status(201).json(created);
+    },
+
+    // PUT /api/ingredients/:id → modifica
+    updateIngredient: (req: Request, res: Response) => {
+        res.json(ingredientService.update(req.params.id, req.body));
+    },
+
+    // DELETE /api/ingredients/:id → elimina. Responde 204 (No Content): salió bien, sin cuerpo.
+    deleteIngredient: (req: Request, res: Response) => {
+        ingredientService.remove(req.params.id);
+        res.status(204).send();
+    },
 };

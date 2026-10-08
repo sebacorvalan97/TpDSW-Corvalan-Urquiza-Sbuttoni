@@ -1,0 +1,49 @@
+/* Estilos del CRUD de Ingredientes — MOBILE-FIRST:
+   lo de arriba es el diseño para celular (SM); los @media van sumando cambios
+   para pantallas más grandes (MD ≥ 640px, LG ≥ 1024px). */
+
+.ing-crud { margin-top: 1.5rem; padding: 1rem; background: #fff; border: 1px solid #c2c9bb; border-radius: 1rem; }
+.ing-crud__title { margin: 0 0 1rem; color: #154212; font-size: 1.5rem; font-weight: 700; }
+
+/* Formulario */
+.ing-form { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; background: #fbf9f8; border-radius: .75rem; }
+.ing-form__title { margin: 0; color: #154212; font-size: 1.05rem; font-weight: 700; }
+.ing-field { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #42493e; }
+.ing-field input, .ing-field select, .ing-field textarea, .ing-search {
+  padding: .65rem .8rem; border: 1px solid #c2c9bb; border-radius: .5rem; font: inherit; width: 100%; box-sizing: border-box; background: #fff;
+}
+.ing-form__actions { display: flex; flex-direction: column; gap: .5rem; }
+
+/* Botones */
+.ing-btn { padding: .65rem .9rem; border: 0; border-radius: .5rem; color: #fff; font-weight: 700; cursor: pointer; }
+.ing-btn:disabled { opacity: .6; cursor: not-allowed; }
+.ing-btn--primary { background: #154212; }
+.ing-btn--secondary { background: #72796e; }
+.ing-btn--edit { background: #a4661e; }
+.ing-btn--delete { background: #a83232; }
+
+/* Mensajes */
+.ing-error { margin: 1rem 0 0; padding: .75rem 1rem; background: #fdecec; color: #8a1f1f; border-radius: .5rem; }
+.ing-empty { text-align: center; color: #72796e; padding: 1.5rem 0; }
+.ing-search { margin: 1rem 0; }
+
+/* Lista de tarjetas: 1 columna en celular */
+.ing-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; grid-template-columns: 1fr; }
+.ing-card { display: flex; flex-direction: column; justify-content: space-between; gap: .75rem; padding: 1rem; border: 1px solid #e4e2e1; border-radius: .75rem; }
+.ing-card__name { margin: 0 0 .35rem; color: #154212; font-size: 1.05rem; font-weight: 700; }
+.ing-badge { display: inline-block; padding: .1rem .55rem; border-radius: 999px; background: #e8f1e3; color: #154212; font-size: .8rem; font-weight: 600; }
+.ing-card__desc { margin: .5rem 0 0; color: #5b6257; font-size: .9rem; }
+.ing-card__actions { display: flex; gap: .5rem; }
+.ing-card__actions .ing-btn { flex: 1; padding: .5rem .7rem; }
+
+/* MD (tablet) */
+@media (min-width: 640px) {
+  .ing-crud { padding: 1.5rem; }
+  .ing-form__actions { flex-direction: row; }
+  .ing-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* LG (escritorio) */
+@media (min-width: 1024px) {
+  .ing-list { grid-template-columns: repeat(3, 1fr); }
+}

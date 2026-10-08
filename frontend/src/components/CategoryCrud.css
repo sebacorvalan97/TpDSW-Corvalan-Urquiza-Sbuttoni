@@ -1,0 +1,48 @@
+/* Estilos del CRUD de Categorías — MOBILE-FIRST:
+   lo de arriba es el diseño para celular (SM); los @media van sumando cambios
+   para pantallas más grandes (MD ≥ 640px, LG ≥ 1024px). */
+
+.cat-crud { margin-top: 1.5rem; padding: 1rem; background: #fff; border: 1px solid #c2c9bb; border-radius: 1rem; }
+.cat-crud__title { margin: 0 0 1rem; color: #154212; font-size: 1.5rem; font-weight: 700; }
+
+/* Formulario */
+.cat-form { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; background: #fbf9f8; border-radius: .75rem; }
+.cat-form__title { margin: 0; color: #154212; font-size: 1.05rem; font-weight: 700; }
+.cat-field { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #42493e; }
+.cat-field input, .cat-field textarea, .cat-search {
+  padding: .65rem .8rem; border: 1px solid #c2c9bb; border-radius: .5rem; font: inherit; width: 100%; box-sizing: border-box;
+}
+.cat-form__actions { display: flex; flex-direction: column; gap: .5rem; }
+
+/* Botones */
+.cat-btn { padding: .65rem .9rem; border: 0; border-radius: .5rem; color: #fff; font-weight: 700; cursor: pointer; }
+.cat-btn:disabled { opacity: .6; cursor: not-allowed; }
+.cat-btn--primary { background: #154212; }
+.cat-btn--secondary { background: #72796e; }
+.cat-btn--edit { background: #a4661e; }
+.cat-btn--delete { background: #a83232; }
+
+/* Mensajes */
+.cat-error { margin: 1rem 0 0; padding: .75rem 1rem; background: #fdecec; color: #8a1f1f; border-radius: .5rem; }
+.cat-empty { text-align: center; color: #72796e; padding: 1.5rem 0; }
+.cat-search { margin: 1rem 0; }
+
+/* Lista de tarjetas: 1 columna en celular */
+.cat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; grid-template-columns: 1fr; }
+.cat-card { display: flex; flex-direction: column; justify-content: space-between; gap: .75rem; padding: 1rem; border: 1px solid #e4e2e1; border-radius: .75rem; }
+.cat-card__name { margin: 0 0 .25rem; color: #154212; font-size: 1.05rem; font-weight: 700; }
+.cat-card__desc { margin: 0; color: #5b6257; font-size: .9rem; }
+.cat-card__actions { display: flex; gap: .5rem; }
+.cat-card__actions .cat-btn { flex: 1; padding: .5rem .7rem; }
+
+/* MD (tablet) */
+@media (min-width: 640px) {
+  .cat-crud { padding: 1.5rem; }
+  .cat-form__actions { flex-direction: row; }
+  .cat-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* LG (escritorio) */
+@media (min-width: 1024px) {
+  .cat-list { grid-template-columns: repeat(3, 1fr); }
+}

@@ -15,7 +15,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+<<<<<<< HEAD
     "@tailwindcss/vite": "^4.3.3",
+=======
+>>>>>>> rama-de-nano
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
