@@ -724,7 +724,11 @@ export default function App() {
                   setEditingRecipe(r);
                   setIsWizardOpen(true);
                 }}
-              />
+              />{' '}
+              <PlatoCrud />
+              <PasoRecetaCrud />
+              <RecetaCrud />
+              <AgregarIngredientesAReceta />
             </>
           )}
         </main>
