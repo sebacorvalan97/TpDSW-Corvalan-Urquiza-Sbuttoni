@@ -14,15 +14,6 @@
   "author": "Mariano Urquiza, Candela Sbuttoni, Sebastian Corvalan",
   "type": "module",
   "main": "src/app.ts",
-  "scripts": {
-<<<<<<< HEAD
-    "dev": "tsx watch src/app.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
-=======
-  "dev": "tsx watch src/app.ts",
-  "test": "echo \"Error: no test specified\" && exit 1"
->>>>>>> rama-de-nano
-  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1"
