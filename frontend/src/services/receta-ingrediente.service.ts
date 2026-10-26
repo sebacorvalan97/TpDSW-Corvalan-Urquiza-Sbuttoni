@@ -1,4 +1,4 @@
-import { RecetaIngrediente } from '../types';
+import type { RecetaIngrediente } from '../types';
 
 const API_URL = 'http://localhost:8080/api/recipes-ingredientes';
 
