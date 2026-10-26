@@ -2,14 +2,14 @@ import { Request, Response } from 'express';
 import { pasoRecetaRepository } from '../shared/repositories/paso-receta.repository.js';
 
 export const pasoRecetaController = {
-  getAllPasos: (req: Request, res: Response) => {
-    const pasos = pasoRecetaRepository.getAllPasos();
+  getAllPasos: async (_req: Request, res: Response) => {
+    const pasos = await pasoRecetaRepository.getAllPasos();
     res.json(pasos);
   },
 
-  createPaso: (req: Request, res: Response) => {
+  createPaso: async (req: Request, res: Response) => {
     const { recetaId, numeroOrden, descripcion } = req.body;
-    const newPaso = pasoRecetaRepository.createPaso(
+    const newPaso = await pasoRecetaRepository.createPaso(
       recetaId,
       numeroOrden,
       descripcion,
@@ -17,10 +17,10 @@ export const pasoRecetaController = {
     res.status(201).json(newPaso);
   },
 
-  updatePaso: (req: Request, res: Response) => {
+  updatePaso: async (req: Request, res: Response) => {
     const idPaso = parseInt(req.params.id as string);
     const newData = req.body;
-    const paso = pasoRecetaRepository.updatePaso(idPaso, newData);
+    const paso = await pasoRecetaRepository.updatePaso(idPaso, newData);
 
     if (paso) {
       res.json(paso);
@@ -29,9 +29,9 @@ export const pasoRecetaController = {
     }
   },
 
-  deletePaso: (req: Request, res: Response) => {
+  deletePaso: async (req: Request, res: Response) => {
     const idPaso = parseInt(req.params.id as string);
-    const paso = pasoRecetaRepository.deletePaso(idPaso);
+    const paso = await pasoRecetaRepository.deletePaso(idPaso);
 
     if (paso) {
       res.json({ message: 'Paso eliminado correctamente' });
@@ -40,9 +40,9 @@ export const pasoRecetaController = {
     }
   },
 
-  getPasoById: (req: Request, res: Response) => {
+  getPasoById: async (req: Request, res: Response) => {
     const idPaso = parseInt(req.params.id as string);
-    const paso = pasoRecetaRepository.getPasoById(idPaso);
+    const paso = await pasoRecetaRepository.getPasoById(idPaso);
 
     if (paso) {
       res.json(paso);

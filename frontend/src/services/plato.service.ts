@@ -1,3 +1,5 @@
+import { authHeaders } from './http';
+
 // Definimos la interfaz aquí mismo para evitar el conflicto de módulos con types.ts
 export interface Plato {
   idDish: number;
@@ -16,7 +18,7 @@ export const platoService = {
   createPlato: async (name: string, description: string): Promise<Plato> => {
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ name, description }),
     });
     return response.json();
@@ -28,18 +30,18 @@ export const platoService = {
   ): Promise<Plato> => {
     const response = await fetch(`${API_URL}/${idDish}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(newData),
     });
     return response.json();
   },
 
   deletePlato: async (idDish: number): Promise<void> => {
-    await fetch(`${API_URL}/${idDish}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/${idDish}`, { method: 'DELETE', headers: authHeaders() });
   },
 
   getPlatoById: async (idDish: number): Promise<Plato> => {
     const response = await fetch(`${API_URL}/${idDish}`);
     return response.json();
   },
-};
+}

@@ -46,41 +46,43 @@ function validateInput(body: unknown): CategoryInput {
 }
 
 export const categoryService = {
-    getAll: (): Category[] => categoryRepository.getAllCategories(),
+    getAll: async (): Promise<Category[]> => categoryRepository.getAllCategories(),
 
-    getById: (rawId: unknown): Category => {
-        const category = categoryRepository.getCategoryById(parseId(rawId));
+    getById: async (rawId: unknown): Promise<Category> => {
+        const category = await categoryRepository.getCategoryById(parseId(rawId));
         if (!category) throw new HttpError(404, 'Categoría no encontrada');
         return category;
     },
 
-    create: (body: unknown): Category => {
+    create: async (body: unknown): Promise<Category> => {
         const data = validateInput(body);
         // Regla de negocio: no puede haber dos categorías con el mismo nombre.
-        if (categoryRepository.getCategoryByName(data.nombre)) {
+        if (await categoryRepository.getCategoryByName(data.nombre)) {
             throw new HttpError(409, 'Ya existe una categoría con ese nombre');   // 409 = conflicto
         }
         return categoryRepository.createCategory(data);
     },
 
-    update: (rawId: unknown, body: unknown): Category => {
+    update: async (rawId: unknown, body: unknown): Promise<Category> => {
         const id = parseId(rawId);
         const data = validateInput(body);
 
-        if (!categoryRepository.getCategoryById(id)) {
+        if (!await categoryRepository.getCategoryById(id)) {
             throw new HttpError(404, 'Categoría no encontrada');
         }
         // Puede conservar su propio nombre, pero no copiar el de OTRA categoría.
-        const mismoNombre = categoryRepository.getCategoryByName(data.nombre);
+        const mismoNombre = await categoryRepository.getCategoryByName(data.nombre);
         if (mismoNombre && mismoNombre.idCategory !== id) {
             throw new HttpError(409, 'Ya existe una categoría con ese nombre');
         }
         // Si no hay error, el update siempre encuentra la categoría; el `as Category` lo informa a TypeScript.
-        return categoryRepository.updateCategory(id, data) as Category;
+        const updated = await categoryRepository.updateCategory(id, data);
+        if (!updated) throw new HttpError(404, 'Categoría no encontrada');
+        return updated;
     },
 
-    remove: (rawId: unknown): void => {
-        const deleted = categoryRepository.deleteCategory(parseId(rawId));
+    remove: async (rawId: unknown): Promise<void> => {
+        const deleted = await categoryRepository.deleteCategory(parseId(rawId));
         if (!deleted) throw new HttpError(404, 'Categoría no encontrada');
         // TODO (cuando existan Platos con categoría): impedir borrar categorías que estén en uso.
     },

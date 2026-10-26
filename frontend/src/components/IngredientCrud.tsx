@@ -17,7 +17,7 @@ import IngredientForm from './IngredientForm';
 import IngredientList from './IngredientList';
 import './IngredientCrud.css';
 
-export default function IngredientCrud() {
+export default function IngredientCrud({ onChanged }: { onChanged?: (ingredients: IngredienteApi[]) => void }) {
     // ---- ESTADO: cuando cambia, React vuelve a dibujar el componente (reactividad) ----
     const [ingredients, setIngredients] = useState<IngredienteApi[]>([]);
     const [editing, setEditing] = useState<IngredienteApi | null>(null); // null = modo "crear"
@@ -32,7 +32,9 @@ export default function IngredientCrud() {
     useEffect(() => {
         const loadIngredients = async () => {
             try {
-                setIngredients(await ingredientService.getAll());
+                const loaded = await ingredientService.getAll();
+                setIngredients(loaded);
+                onChanged?.(loaded);
             } catch (err) {
                 setError(getErrorMessage(err));
             } finally {
@@ -55,11 +57,14 @@ export default function IngredientCrud() {
         try {
             if (editing === null) {
                 const created = await ingredientService.create(data);
-                setIngredients((current) => [...current, created]);           // agregamos al final
+                const next = [...ingredients, created];
+                setIngredients(next);
+                onChanged?.(next);
             } else {
                 const updated = await ingredientService.update(editing.idIngredient, data);
-                setIngredients((current) =>                                   // reemplazamos el editado
-                    current.map((i) => (i.idIngredient === updated.idIngredient ? updated : i)));
+                const next = ingredients.map((i) => (i.idIngredient === updated.idIngredient ? updated : i));
+                setIngredients(next);
+                onChanged?.(next);
             }
             setEditing(null);
             setFormVersion((v) => v + 1);   // limpia el formulario
@@ -76,7 +81,9 @@ export default function IngredientCrud() {
         setError(null);
         try {
             await ingredientService.remove(ingredient.idIngredient);
-            setIngredients((current) => current.filter((i) => i.idIngredient !== ingredient.idIngredient));
+            const next = ingredients.filter((i) => i.idIngredient !== ingredient.idIngredient);
+            setIngredients(next);
+            onChanged?.(next);
             if (editing?.idIngredient === ingredient.idIngredient) {   // si justo lo estábamos editando
                 setEditing(null);
                 setFormVersion((v) => v + 1);

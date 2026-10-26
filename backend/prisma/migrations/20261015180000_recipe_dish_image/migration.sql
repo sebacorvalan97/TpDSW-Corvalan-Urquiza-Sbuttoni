@@ -1,0 +1,1 @@
+ALTER TABLE `plato` ADD COLUMN `imagenUrl` VARCHAR(500) NULL;

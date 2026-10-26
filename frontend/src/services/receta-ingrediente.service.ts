@@ -1,4 +1,5 @@
-import { RecetaIngrediente } from '../types';
+import type { RecetaIngrediente } from '../types';
+import { authHeaders } from './http';
 
 const API_URL = 'http://localhost:8080/api/recipes-ingredientes';
 
@@ -16,13 +17,13 @@ export const recetaIngredienteService = {
   ): Promise<RecetaIngrediente> => {
     const response = await fetch(`${API_URL}/${recetaId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ingredienteId, cantidad, unidad }),
     });
     return response.json();
   },
 
   deleteFromReceta: async (recetaId: number): Promise<void> => {
-    await fetch(`${API_URL}/${recetaId}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/${recetaId}`, { method: 'DELETE', headers: authHeaders() });
   },
 };

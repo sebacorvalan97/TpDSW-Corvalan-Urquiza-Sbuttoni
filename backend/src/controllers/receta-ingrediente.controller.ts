@@ -2,16 +2,16 @@ import { Request, Response } from 'express';
 import { recetaIngredienteRepository } from '../shared/repositories/receta-ingrediente.repository.js';
 
 export const recetaIngredienteController = {
-  getIngredientesByReceta: (req: Request, res: Response) => {
+  getIngredientesByReceta: async (req: Request, res: Response) => {
     const recetaId = parseInt(req.params.recetaId as string);
-    const ingredientes = recetaIngredienteRepository.getAllByRecetaId(recetaId);
+    const ingredientes = await recetaIngredienteRepository.getAllByRecetaId(recetaId);
     res.json(ingredientes);
   },
 
-  addIngredienteToReceta: (req: Request, res: Response) => {
+  addIngredienteToReceta: async (req: Request, res: Response) => {
     const recetaId = parseInt(req.params.recetaId as string);
     const { ingredienteId, cantidad, unidad } = req.body;
-    const newItem = recetaIngredienteRepository.create(
+    const newItem = await recetaIngredienteRepository.create(
       recetaId,
       ingredienteId,
       cantidad,
@@ -20,9 +20,9 @@ export const recetaIngredienteController = {
     res.status(201).json(newItem);
   },
 
-  removeIngredientesFromReceta: (req: Request, res: Response) => {
+  removeIngredientesFromReceta: async (req: Request, res: Response) => {
     const recetaId = parseInt(req.params.recetaId as string);
-    recetaIngredienteRepository.deleteByRecetaId(recetaId);
+    await recetaIngredienteRepository.deleteByRecetaId(recetaId);
     res.json({ message: 'Ingredientes eliminados' });
   },
 };

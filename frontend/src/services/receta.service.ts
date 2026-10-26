@@ -1,50 +1,108 @@
-export interface Receta {
-  idReceta: number;
+import { API_BASE, JSON_HEADERS, authHeaders, request } from './http';
+
+interface RecipeApiResponse {
+  idRecipe: number;
+  idDish: number;
   nombre: string;
-  descripcion?: string;
-  tiempoMinutos?: number;
+  descripcion: string;
+  duracion: string;
+  createdByUserId: number | null;
+  createdByName: string | null;
+  imagenUrl: string;
+  idCategory: number | null;
+  idDifficulty: number | null;
+  origins: Array<{ idOrigin: number; nombre: string; pais: string }>;
+  ingredients: Array<{
+    idIngredient: number;
+    nombre: string;
+    unidadMedidaDefecto: string;
+    cantidad: number;
+    unidad: string;
+  }>;
+  steps: Array<{ idStep: number; order: number; descripcion: string }>;
+  ratingAverage: number;
+  ratingCount: number;
 }
 
-const API_URL = 'http://localhost:8080/api/recetas';
+export interface Receta {
+  idRecipe: number;
+  idReceta: number;
+  nombre: string;
+  descripcion: string;
+  duracion: string;
+  tiempoMinutos: number;
+  createdByUserId: number | null;
+  createdByName: string | null;
+  imagenUrl: string;
+  idDish: number;
+  idCategory: number | null;
+  idDifficulty: number | null;
+  origins: RecipeApiResponse['origins'];
+  ingredients: RecipeApiResponse['ingredients'];
+  steps: RecipeApiResponse['steps'];
+  ratingAverage: number;
+  ratingCount: number;
+}
+
+export interface RecipeWriteData {
+  nombre: string;
+  descripcion: string;
+  duracion: number;
+  idCategory: number;
+  idDifficulty: number;
+  idOrigin: number;
+  imagenUrl: string;
+  ingredients: Array<{ idIngredient: number; cantidad: number; unidad: string }>;
+  steps: string[];
+}
+
+const API_URL = `${API_BASE}/recipes`;
+
+const normalizeRecipe = (recipe: RecipeApiResponse): Receta => ({
+  ...recipe,
+  idReceta: recipe.idRecipe,
+  tiempoMinutos: Number(recipe.duracion) || 0,
+});
+
+const saveRecipe = (url: string, method: 'POST' | 'PUT', data: RecipeWriteData) =>
+  request<RecipeApiResponse>(url, {
+    method,
+    headers: authHeaders(JSON_HEADERS),
+    body: JSON.stringify({
+      ...data,
+      duracion: String(data.duracion),
+    }),
+  }).then(normalizeRecipe);
 
 export const recetaService = {
-  async getAllRecetas(): Promise<Receta[]> {
-    const response = await fetch(API_URL);
-    if (!response.ok) throw new Error('Error al obtener las recetas');
-    return response.json();
-  },
+  getAllRecetas: async () => (await request<RecipeApiResponse[]>(API_URL)).map(normalizeRecipe),
 
-  async createReceta(
-    nombre: string,
-    descripcion: string,
-    tiempoMinutos: number,
-  ): Promise<Receta> {
-    const response = await fetch(API_URL, {
+  getReceta: async (idRecipe: number) => normalizeRecipe(await request<RecipeApiResponse>(`${API_URL}/${idRecipe}`)),
+
+  createComplete: (data: RecipeWriteData) => saveRecipe(API_URL, 'POST', data),
+
+  updateComplete: (idRecipe: number, data: RecipeWriteData) =>
+    saveRecipe(`${API_URL}/${idRecipe}`, 'PUT', data),
+
+  async createReceta(nombre: string, descripcion: string, tiempoMinutos: number): Promise<Receta> {
+    return normalizeRecipe(await request<RecipeApiResponse>(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, descripcion, tiempoMinutos }),
-    });
-    if (!response.ok) throw new Error('Error al crear la receta');
-    return response.json();
+      headers: authHeaders(JSON_HEADERS),
+      body: JSON.stringify({ nombre, descripcion: descripcion || nombre, duracion: String(tiempoMinutos) }),
+    }));
   },
 
   async updateReceta(
-    idReceta: number,
+    idRecipe: number,
     data: { nombre: string; descripcion: string; tiempoMinutos: number },
   ): Promise<Receta> {
-    const response = await fetch(`${API_URL}/${idReceta}`, {
+    return normalizeRecipe(await request<RecipeApiResponse>(`${API_URL}/${idRecipe}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Error al actualizar la receta');
-    return response.json();
+      headers: authHeaders(JSON_HEADERS),
+      body: JSON.stringify({ nombre: data.nombre, descripcion: data.descripcion || data.nombre, duracion: String(data.tiempoMinutos) }),
+    }));
   },
 
-  async deleteReceta(idReceta: number): Promise<void> {
-    const response = await fetch(`${API_URL}/${idReceta}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Error al eliminar la receta');
-  },
+  deleteReceta: (idRecipe: number) =>
+    request<void>(`${API_URL}/${idRecipe}`, { method: 'DELETE', headers: authHeaders() }),
 };
