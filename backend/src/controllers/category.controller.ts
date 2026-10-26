@@ -13,29 +13,29 @@ import { categoryService } from '../services/category.service.js';
 
 export const categoryController = {
     // GET /api/categories → lista todas
-    getAllCategories: (_req: Request, res: Response) => {
-        res.json(categoryService.getAll());
+    getAllCategories: async (_req: Request, res: Response) => {
+        res.json(await categoryService.getAll());
     },
 
     // GET /api/categories/:id → una sola
-    getCategoryById: (req: Request, res: Response) => {
-        res.json(categoryService.getById(req.params.id));
+    getCategoryById: async (req: Request, res: Response) => {
+        res.json(await categoryService.getById(req.params.id));
     },
 
     // POST /api/categories → crea. Responde 201 (Created) con la categoría nueva.
-    createCategory: (req: Request, res: Response) => {
-        const created = categoryService.create(req.body);
+    createCategory: async (req: Request, res: Response) => {
+        const created = await categoryService.create(req.body);
         res.status(201).json(created);
     },
 
     // PUT /api/categories/:id → modifica
-    updateCategory: (req: Request, res: Response) => {
-        res.json(categoryService.update(req.params.id, req.body));
+    updateCategory: async (req: Request, res: Response) => {
+        res.json(await categoryService.update(req.params.id, req.body));
     },
 
     // DELETE /api/categories/:id → elimina. Responde 204 (No Content): salió bien, sin cuerpo.
-    deleteCategory: (req: Request, res: Response) => {
-        categoryService.remove(req.params.id);
+    deleteCategory: async (req: Request, res: Response) => {
+        await categoryService.remove(req.params.id);
         res.status(204).send();
     },
 };

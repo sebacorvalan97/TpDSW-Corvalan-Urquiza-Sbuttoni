@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Cuenta {
+  idCuenta    Int      @id @default(autoincrement())
+  fechaAlta   DateTime @default(now()) @db.DateTime(0)
+  contrasenia String   @db.VarChar(255)
+  estado      String   @default("activo") @db.VarChar(50)
+  mail        String   @unique @db.VarChar(255)
+
+  usuario       Usuario?
+  administrador Administrador?
+
+  @@map("cuenta")
+}
+
+model Usuario {
+  idCuenta        Int       @id
+  nombre          String    @db.VarChar(100)
+  apellido        String    @db.VarChar(100)
+  fechaNacimiento DateTime? @db.Date
+  biografia       String?   @db.Text
+  fotoPerfil      String?   @db.VarChar(500)
+
+  cuenta         Cuenta        @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+  comentarios    Comentario[]
+  comentariosConMeGusta ComentarioLike[]
+  alacena        ItemAlacena[]
+  recetasCreadas Receta[]
+  favoritos      Favorito[]
+
+  @@map("usuario")
+}
+
+model Administrador {
+  idAdministrador  Int      @id @default(autoincrement())
+  idCuenta         Int      @unique
+  nombre           String   @db.VarChar(100)
+  nivelAcceso      String   @default("basico") @db.VarChar(50)
+  fechaDesignacion DateTime @default(now()) @db.DateTime(0)
+
+  cuenta Cuenta @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("administrador")
+}
+
+model Categoria {
+  idCategoria     Int    @id @default(autoincrement())
+  nombreCategoria String @unique @db.VarChar(100)
+  descripcion     String @default("") @db.VarChar(200)
+
+  recetas Receta[]
+
+  @@map("categoria")
+}
+
+model Dificultad {
+  idDificultad Int    @id @default(autoincrement())
+  nivel        String @unique @db.VarChar(50)
+
+  recetas Receta[]
+
+  @@map("dificultad")
+}
+
+model Origen {
+  idOrigen           Int     @id @default(autoincrement())
+  nombreOrigen       String  @db.VarChar(150)
+  paisReferencia     String  @db.VarChar(100)
+  region             String? @db.VarChar(100)
+  descripcionCultura String? @db.Text
+
+  platos PlatoOrigen[]
+
+  @@map("origen")
+}
+
+model Ingrediente {
+  idIngrediente       Int    @id @default(autoincrement())
+  nombreIngrediente   String @unique @db.VarChar(150)
+  descripcion         String @default("") @db.VarChar(200)
+  unidadMedidaDefecto String @default("unidad") @db.VarChar(50)
+
+  sustitutos    IngredienteSustituto[] @relation("Original")
+  comoSustituto IngredienteSustituto[] @relation("Sustituto")
+  items         ItemReceta[]
+  alacena       ItemAlacena[]
+
+  @@map("ingrediente")
+}
+
+model IngredienteSustituto {
+  idSustituto          Int
+  idIngrediente        Int
+  proporcionConversion String @db.VarChar(100)
+  notas                String @default("") @db.VarChar(200)
+
+  sustituto Ingrediente @relation("Sustituto", fields: [idSustituto], references: [idIngrediente], onDelete: Cascade, onUpdate: Cascade)
+  original  Ingrediente @relation("Original", fields: [idIngrediente], references: [idIngrediente], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([idSustituto, idIngrediente])
+  @@index([idIngrediente], map: "fk_original_ingrediente")
+  @@map("ingrediente_sustituto")
+}
+
+model Plato {
+  idPlato           Int     @id @default(autoincrement())
+  nombre            String  @db.VarChar(200)
+  descripcionReceta String? @db.Text
+  imagenUrl         String? @db.VarChar(500)
+
+  origenes    PlatoOrigen[]
+  receta      Receta?
+  comentarios Comentario[]
+
+  @@map("plato")
+}
+
+model PlatoOrigen {
+  idPlato  Int
+  idOrigen Int
+
+  plato  Plato  @relation(fields: [idPlato], references: [idPlato], onDelete: Cascade, onUpdate: Cascade)
+  origen Origen @relation(fields: [idOrigen], references: [idOrigen], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([idPlato, idOrigen])
+  @@index([idOrigen], map: "fk_plato_origen_origen")
+  @@map("plato_origen")
+}
+
+model Receta {
+  idReceta          Int     @id @default(autoincrement())
+  idPlato           Int     @unique
+  descripcionReceta String? @db.Text
+  duracion          String? @db.VarChar(50)
+  idCategoria       Int?
+  idDificultad      Int?
+  idCuentaCreador   Int?
+
+  plato      Plato        @relation(fields: [idPlato], references: [idPlato], onDelete: Cascade, onUpdate: Cascade)
+  categoria  Categoria?   @relation(fields: [idCategoria], references: [idCategoria], onDelete: SetNull, onUpdate: Cascade)
+  dificultad Dificultad?  @relation(fields: [idDificultad], references: [idDificultad], onDelete: SetNull, onUpdate: Cascade)
+  creador    Usuario?     @relation(fields: [idCuentaCreador], references: [idCuenta], onDelete: SetNull, onUpdate: Cascade)
+  pasos      PasoReceta[]
+  items      ItemReceta[]
+  favoritos  Favorito[]
+
+  @@index([idCategoria], map: "idx_receta_categoria")
+  @@index([idDificultad], map: "idx_receta_dificultad")
+  @@index([idCuentaCreador], map: "idx_receta_creador")
+  @@map("receta")
+}
+
+model PasoReceta {
+  idPaso          Int    @id @default(autoincrement())
+  idReceta        Int
+  numeroOrden     Int
+  descripcionPaso String @db.Text
+
+  receta Receta @relation(fields: [idReceta], references: [idReceta], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([idReceta, numeroOrden], map: "uq_paso_orden")
+  @@index([idReceta], map: "idx_paso_receta")
+  @@map("paso_receta")
+}
+
+model ItemReceta {
+  idItemReceta        Int     @id @default(autoincrement())
+  idReceta            Int
+  idIngrediente       Int
+  cantidadIngrediente Decimal @db.Decimal(10, 2)
+  unidadMedida        String  @db.VarChar(50)
+
+  receta      Receta      @relation(fields: [idReceta], references: [idReceta], onDelete: Cascade, onUpdate: Cascade)
+  ingrediente Ingrediente @relation(fields: [idIngrediente], references: [idIngrediente], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([idReceta, idIngrediente], map: "uq_receta_ingrediente")
+  @@index([idIngrediente], map: "fk_item_receta_ingrediente")
+  @@index([idReceta], map: "idx_item_receta_receta")
+  @@map("item_receta")
+}
+
+model Comentario {
+  idComentario          Int      @id @default(autoincrement())
+  idCuenta              Int
+  idPlato               Int
+  descripcionComentario String   @db.Text
+  calificacion          Int
+  fechaComentario       DateTime @default(now()) @db.DateTime(0)
+
+  usuario Usuario @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+  plato   Plato   @relation(fields: [idPlato], references: [idPlato], onDelete: Cascade, onUpdate: Cascade)
+  likes   ComentarioLike[]
+
+  @@index([idPlato], map: "idx_comentario_plato")
+  @@index([idCuenta], map: "idx_comentario_usuario")
+  @@map("comentario")
+}
+
+model Favorito {
+  idCuenta  Int
+  idReceta  Int
+  fechaAlta DateTime @default(now()) @db.DateTime(0)
+
+  usuario Usuario @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+  receta  Receta  @relation(fields: [idReceta], references: [idReceta], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([idCuenta, idReceta])
+  @@index([idReceta], map: "idx_favorito_receta")
+  @@map("favorito")
+}
+
+model ComentarioLike {
+  idCuenta      Int
+  idComentario  Int
+
+  usuario   Usuario   @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+  comentario Comentario @relation(fields: [idComentario], references: [idComentario], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([idCuenta, idComentario])
+  @@index([idComentario], map: "idx_comentario_like_comentario")
+  @@map("comentario_like")
+}
+
+model ItemAlacena {
+  idCuenta            Int
+  idIngrediente       Int
+  cantidadIngrediente Decimal @db.Decimal(10, 2)
+  unidadMedida        String  @db.VarChar(50)
+
+  usuario     Usuario     @relation(fields: [idCuenta], references: [idCuenta], onDelete: Cascade, onUpdate: Cascade)
+  ingrediente Ingrediente @relation(fields: [idIngrediente], references: [idIngrediente], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([idCuenta, idIngrediente])
+  @@index([idIngrediente], map: "fk_alacena_ingrediente")
+  @@map("item_alacena")
+}

@@ -1,41 +1,54 @@
+import { prisma } from '../prisma.js';
+
 export interface Dish {
     idDish: number;
     description: string;
     name: string;
 }
 
-const dishes: Dish[] = [];
-let idCurrentDish = 1;
+const fromDatabase = (dish: {
+    idPlato: number;
+    descripcionReceta: string | null;
+    nombre: string;
+}): Dish => ({
+    idDish: dish.idPlato,
+    description: dish.descripcionReceta ?? '',
+    name: dish.nombre,
+});
 
 export const dishRepository = {
-    getAllDishes: () => {
-       return dishes; 
+    getAllDishes: async (): Promise<Dish[]> => {
+        const dishes = await prisma.plato.findMany({ orderBy: { idPlato: 'asc' } });
+        return dishes.map(fromDatabase);
     },
 
-    createDish: (description: string, name: string) => {
-        const newDish: Dish = { idDish: idCurrentDish++, description, name };
-        dishes.push(newDish);
-        return newDish;
+    createDish: async (name: string, description: string): Promise<Dish> => {
+        const dish = await prisma.plato.create({
+            data: { nombre: name, descripcionReceta: description },
+        });
+        return fromDatabase(dish);
     },
 
-    updateDish: (idDish: number, newData: Partial<Dish>) => {
-        const index = dishes.findIndex(d => d.idDish == idDish);
-        if (index !== -1) {
-            dishes[index] = { ...dishes[index], ...newData } as Dish;
-            return dishes[index];
-        }
-        return null;
+    updateDish: async (idDish: number, newData: Partial<Dish>): Promise<Dish | null> => {
+        const updated = await prisma.plato.updateMany({
+            where: { idPlato: idDish },
+            data: {
+                ...(newData.name === undefined ? {} : { nombre: newData.name }),
+                ...(newData.description === undefined ? {} : { descripcionReceta: newData.description }),
+            },
+        });
+        if (updated.count === 0) return null;
+        const dish = await prisma.plato.findUnique({ where: { idPlato: idDish } });
+        return dish ? fromDatabase(dish) : null;
     },
 
-    deleteDish: (idDish: number) => {
-        const index = dishes.findIndex(d => d.idDish == idDish);
-        if (index !== -1) {
-            return dishes.splice(index, 1);
-        }
-        return null;
+    deleteDish: async (idDish: number): Promise<boolean> => {
+        const deleted = await prisma.plato.deleteMany({ where: { idPlato: idDish } });
+        return deleted.count > 0;
     },
 
-    getDishById: (idDish: number) => {
-        return dishes.find(d => d.idDish == idDish) || null;
-    }
+    getDishById: async (idDish: number): Promise<Dish | null> => {
+        const dish = await prisma.plato.findUnique({ where: { idPlato: idDish } });
+        return dish ? fromDatabase(dish) : null;
+    },
 };

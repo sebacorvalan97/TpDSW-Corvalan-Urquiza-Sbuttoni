@@ -1,5 +1,6 @@
 ﻿// Etiquetas destacadas que se muestran en el panel lateral de Descubrir.
 import type { Receta } from '../types';
+import type { AuthSession } from './AuthPanel';
 
 const tags = ['Italiana', 'Vegana', 'Rápida', 'Verano'];
 
@@ -7,10 +8,17 @@ const tags = ['Italiana', 'Vegana', 'Rápida', 'Verano'];
 interface Props {
   recetas: Receta[];
   onAddRecipe: () => void;
+  onShowRecipes: () => void;
+  onCreateUser: () => void;
+  onAdmin: () => void;
+  onSignIn: () => void;
+  onSignOut: () => void;
+  authSession: AuthSession | null;
+  errorMessage?: string;
 }
 
 // Pantalla de exploración con navegación, búsqueda, filtros, estado vacío y acceso a crear receta.
-export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
+export default function RecipeDiscover({ recetas, onAddRecipe, onShowRecipes, onCreateUser, onAdmin, onSignIn, onSignOut, authSession, errorMessage }: Props) {
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md overflow-x-hidden">
       {/* Cabecera del sitio: marca, navegación de escritorio y acceso para agregar una receta. */}
@@ -20,30 +28,70 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
           <div className="font-display-lg text-3xl text-primary">El Bodegón Digital</div>
 
           <div className="hidden md:flex items-center space-x-6">
-            <a className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">
-              Mis recetas
-            </a>
+            
+            <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onShowRecipes} type="button">
+              Recetas
+            </button>
             <a className="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-container transition-colors duration-200" href="#">
               Descubrir
             </a>
             <a className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">
               Categorías
             </a>
-            <a className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">
-              Mi despensa
-            </a>
+          
           </div>
-
+           
           <div className="flex items-center space-x-3">
+            {authSession && (
             <button className="hidden lg:flex items-center bg-primary text-on-primary px-3 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all" onClick={onAddRecipe} type="button">
               <span className="material-symbols-outlined mr-2">add</span>
               Agregar receta
             </button>
-            <img
-              alt="Avatar del perfil de usuario"
-              className="w-10 h-10 rounded-full border-2 border-primary-fixed"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoX8SbFpL87nYpd0FHrqlUf_9ncajNhyIpo_Mg8EZEl748nutxgr89UwzC_vkX-R7Ko77ihdIJCkrJnNSqEeR5ViybSCx9eX_gUWOH1S9o1RA9EEd_98d4omAR_EvjPJwPoYXi20unabilMaw3ycBPLovJaSje3PPKCMpolHK8hcI2AQ1LNtOpF_77aCpvoHfz-SuC-sfaFgRWztiDPn28wNOX9s_Ho8mRuD95Wv1JEKxsdu5gUnoo"
-            />
+            )}
+            
+            {!authSession && (
+              <button
+                type="button"
+                onClick={onCreateUser}
+                className="flex items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
+              >
+                <span className="material-symbols-outlined mr-1.5 text-lg">person_add</span>
+                Crear usuario
+              </button>
+            )}
+            {authSession?.role === 'admin' && (
+              <button
+                type="button"
+                onClick={onAdmin}
+                className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-medium text-primary hover:bg-surface-container-low"
+              >
+                Panel administrador
+              </button>
+            )}
+            {authSession ? (
+              <div className="flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-2 py-1">
+                <span
+                  aria-label={`Perfil de ${authSession.name}`}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary-fixed bg-primary font-semibold text-on-primary"
+                >
+                  {authSession.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden max-w-32 truncate text-sm font-medium text-on-surface sm:inline">
+                  {authSession.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="rounded-full px-2 py-1 text-sm font-medium text-secondary hover:bg-surface-container-high"
+                >
+                  Salir
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={onSignIn} className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-medium text-primary">
+                Iniciar sesión
+              </button>
+            )}
           </div>
         </nav>
       </header>
@@ -54,14 +102,14 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
         <aside className="hidden lg:flex flex-col h-[calc(100vh-80px)] w-64 sticky top-20 py-8 px-4 space-y-4 bg-surface-container-low border-r border-outline-variant">
           <div className="pb-4">
             <h3 className="font-headline-md text-2xl text-primary">Mi cocina</h3>
-            <p className="font-label-md text-sm text-on-surface-variant opacity-70">Chef de cocina</p>
+            <p className="font-label-md text-sm text-on-surface-variant opacity-70">Descubre recetas</p>
           </div>
 
           <nav className="space-y-2 flex-1">
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+            <button className="flex w-full items-center p-3 text-left text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" onClick={onShowRecipes} type="button">
               <span className="material-symbols-outlined mr-3">book</span>
-              <span className="font-label-md">Mis recetas</span>
-            </a>
+              <span className="font-label-md">Recetas</span>
+            </button>
             <a className="flex items-center p-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-transform" href="#">
               <span className="material-symbols-outlined mr-3">explore</span>
               <span className="font-label-md">Descubrir</span>
@@ -70,10 +118,12 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
               <span className="material-symbols-outlined mr-3">category</span>
               <span className="font-label-md">Categorías</span>
             </a>
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
-              <span className="material-symbols-outlined mr-3">kitchen</span>
-              <span className="font-label-md">Mi despensa</span>
-            </a>
+            {authSession && (
+              <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+                <span className="material-symbols-outlined mr-3">kitchen</span>
+                <span className="font-label-md">Mi despensa</span>
+              </a>
+            )}
           </nav>
 
           {/* Lista de etiquetas populares usada como guía visual para explorar recetas. */}
@@ -102,6 +152,7 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
 
         {/* Área principal con búsqueda, filtros disponibles y mensaje cuando no hay recetas. */}
         <main className="flex-1 py-4 lg:pl-8">
+          {errorMessage && <p className="mb-4 rounded-lg bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]" role="alert">{errorMessage}</p>}
           {/* Herramientas de descubrimiento: campo de búsqueda y filtros de ejemplo. */}
           <section className="mb-8">
             <div className="relative group">
@@ -172,7 +223,7 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
 
       {/* Navegación inferior móvil; el botón Crear invoca la acción recibida desde App. */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-xl">
-        <button type="button" className="flex flex-col items-center justify-center text-secondary">
+        <button type="button" className="flex flex-col items-center justify-center text-secondary" onClick={onShowRecipes}>
           <span className="material-symbols-outlined">menu_book</span>
           <span className="font-label-sm text-[10px]">Recetas</span>
         </button>
@@ -188,10 +239,12 @@ export default function RecipeDiscover({ recetas, onAddRecipe }: Props) {
           <span className="material-symbols-outlined">grid_view</span>
           <span className="font-label-sm text-[10px]">Categorías</span>
         </button>
-        <button type="button" className="flex flex-col items-center justify-center text-secondary">
-          <span className="material-symbols-outlined">inventory_2</span>
-          <span className="font-label-sm text-[10px]">Despensa</span>
-        </button>
+        {authSession && (
+          <button type="button" className="flex flex-col items-center justify-center text-secondary">
+            <span className="material-symbols-outlined">inventory_2</span>
+            <span className="font-label-sm text-[10px]">Despensa</span>
+          </button>
+        )}
       </nav>
     </div>
   );

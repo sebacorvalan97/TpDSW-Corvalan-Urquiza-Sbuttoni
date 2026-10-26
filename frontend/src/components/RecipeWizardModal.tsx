@@ -12,8 +12,8 @@ interface Props {
   currentUser: Usuario;
   onClose: () => void;
   onNavigateDiscover: () => void;
-  onSaveRecipe: (recipeData: Partial<Receta>) => void;
-  onCreateIngredient: (nombre: string, unidad: string) => Ingrediente;
+  onSaveRecipe: (recipeData: Partial<Receta>) => Promise<void>;
+  onCreateIngredient: (nombre: string, unidad: string) => Promise<Ingrediente>;
 }
 
 // Valores editables de una fila de ingrediente antes de convertirlos al modelo de receta.
@@ -44,6 +44,9 @@ export default function RecipeWizardModal(props: Props) {
   const [origenId, setOrigenId] = useState(recipe?.plato.origenId ?? '');
   const [dificultadId, setDificultadId] = useState(recipe?.plato.dificultadId ?? '');
   const [imagenUrl, setImagenUrl] = useState(recipe?.plato.imagenUrl ?? '');
+  const [duracionMinutos, setDuracionMinutos] = useState(
+    recipe ? recipe.tiempoPreparacionMin + recipe.tiempoCoccionMin : 30
+  );
 
   // Estado de las listas dinámicas de ingredientes y pasos, con una fila vacía al crear.
   const [ingredientes, setIngredientes] = useState<IngredienteDraft[]>(
@@ -62,6 +65,7 @@ export default function RecipeWizardModal(props: Props) {
       : [{ id: createId(), texto: '' }]
   );
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Agrega una fila vacía de ingrediente sin manipular directamente el DOM.
   function agregarIngrediente() {
@@ -93,8 +97,10 @@ export default function RecipeWizardModal(props: Props) {
   }
 
   // Valida el formulario, obtiene o crea ingredientes del catálogo y entrega la receta a App.
-  function guardarReceta(event: FormEvent<HTMLFormElement>) {
+  async function guardarReceta(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) return;
+    setError('');
 
     const ingredientesCompletos = ingredientes.filter(
       (ingrediente) => ingrediente.nombre.trim()
@@ -108,6 +114,15 @@ export default function RecipeWizardModal(props: Props) {
       setError('Agrega al menos un ingrediente y un paso de preparación.');
       return;
     }
+    const ingredientNames = ingredientesCompletos.map((ingredient) => ingredient.nombre.trim().toLowerCase());
+    if (new Set(ingredientNames).size !== ingredientNames.length) {
+      setError('No repitas un ingrediente en la receta.');
+      return;
+    }
+    if (ingredientesCompletos.some((ingredient) => ingredient.cantidad.trim() && (!Number.isFinite(Number(ingredient.cantidad)) || Number(ingredient.cantidad) <= 0))) {
+      setError('Las cantidades de los ingredientes deben ser mayores que cero.');
+      return;
+    }
 
     // Verifica que las opciones elegidas sigan existiendo en los catálogos recibidos.
     if (!props.categorias.some((categoria) => categoria.id === categoriaId)
@@ -118,38 +133,48 @@ export default function RecipeWizardModal(props: Props) {
     }
 
     // Reutiliza ingredientes conocidos; los nombres nuevos se incorporan al catálogo global.
-    const ingredientesGuardados = ingredientesCompletos.map((ingrediente) => {
+    setIsSaving(true);
+    try {
+      const ingredientesGuardados: Ingrediente[] = [];
+      for (const ingrediente of ingredientesCompletos) {
       const unidad = ingrediente.unidad.trim() || 'unidad';
       const existente = props.ingredientesCatalogo.find(
         (item) => item.nombre.toLowerCase() === ingrediente.nombre.trim().toLowerCase()
       );
       const catalogo = existente
-        ?? props.onCreateIngredient(ingrediente.nombre.trim(), unidad);
+        ?? await props.onCreateIngredient(ingrediente.nombre.trim(), unidad);
 
-      return {
+      ingredientesGuardados.push({
         ...catalogo,
-        cantidad: ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : undefined,
+        cantidad: ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : 1,
         unidad,
-      };
-    });
+      });
+      }
 
-    // Empaqueta los campos del plato y la receta para que App cree o actualice el registro.
-    const platoId = recipe?.plato.id ?? `plt-${Date.now()}`;
-    props.onSaveRecipe({
-      id: recipe?.id,
-      platoId,
-      plato: {
-        id: platoId,
-        nombre: nombre.trim(),
-        descripcion: descripcion.trim(),
-        imagenUrl: imagenUrl.trim(),
-        categoriaId,
-        origenId,
-        dificultadId,
-      },
-      ingredientes: ingredientesGuardados,
-      pasos: pasosCompletos,
-    });
+      // Empaqueta los campos del plato y la receta para que App los persista en la API.
+      const platoId = recipe?.plato.id ?? '';
+      await props.onSaveRecipe({
+        id: recipe?.id,
+        platoId,
+        plato: {
+          id: platoId,
+          nombre: nombre.trim(),
+          descripcion: descripcion.trim(),
+          imagenUrl: imagenUrl.trim(),
+          categoriaId,
+          origenId,
+          dificultadId,
+        },
+        tiempoPreparacionMin: duracionMinutos,
+        tiempoCoccionMin: 0,
+        ingredientes: ingredientesGuardados,
+        pasos: pasosCompletos,
+      });
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo guardar la receta.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -235,6 +260,10 @@ export default function RecipeWizardModal(props: Props) {
 <div>
 <label className="block text-label-md text-primary mb-2">Descripción</label>
 <textarea className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all" placeholder="Describe brevemente el alma de este plato..." rows={4} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} required></textarea>
+</div>
+<div>
+<label className="block text-label-md text-primary mb-2">Duración (minutos)</label>
+<input className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" min="1" required type="number" value={duracionMinutos} onChange={(event) => setDuracionMinutos(Number(event.target.value))}/>
 </div>
 <div className="grid grid-cols-2 gap-4">
 <div>
@@ -350,7 +379,7 @@ export default function RecipeWizardModal(props: Props) {
 </div>
 <div className="flex space-x-4 w-full md:w-auto">
 <button className="flex-1 md:flex-none px-8 py-3 rounded-lg border border-primary text-primary font-bold hover:bg-surface-container-low transition-all" onClick={props.onClose} type="button">Cancelar</button>
-<button className="flex-1 md:flex-none px-12 py-3 rounded-lg bg-primary text-on-primary font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all" type="submit">Guardar Receta</button>
+<button className="flex-1 md:flex-none px-12 py-3 rounded-lg bg-primary text-on-primary font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all disabled:cursor-wait disabled:opacity-60" disabled={isSaving} type="submit">{isSaving ? 'Guardando...' : 'Guardar Receta'}</button>
 </div>
 </div>
 {error && <p className="text-error text-sm" role="alert">{error}</p>}

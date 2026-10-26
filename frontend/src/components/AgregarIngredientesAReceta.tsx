@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { RecetaIngrediente, Ingrediente, Receta } from '../types';
+import type { RecetaIngrediente, IngredienteApi } from '../types';
 import { recetaIngredienteService } from '../services/receta-ingrediente.service';
-import { ingredienteService } from '../services/ingrediente.service';
+import { ingredientService } from '../services/ingredient.service';
 import { recetaService } from '../services/receta.service';
 
 export default function AgregarIngredientesAReceta() {
-  const [recetas, setRecetas] = useState<Receta[]>([]);
+  const [recetas, setRecetas] = useState<Awaited<ReturnType<typeof recetaService.getAllRecetas>>>([]);
   const [selectedRecetaId, setSelectedRecetaId] = useState<number | null>(null);
-  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
+  const [ingredientes, setIngredientes] = useState<IngredienteApi[]>([]);
   const [recetaIngredientes, setRecetaIngredientes] = useState<
     RecetaIngrediente[]
   >([]);
@@ -28,7 +28,7 @@ export default function AgregarIngredientesAReceta() {
 
   const loadRecetas = async () => {
     try {
-      const data = await recetaService.getAll();
+      const data = await recetaService.getAllRecetas();
       setRecetas(data);
     } catch (error) {
       console.error('Error cargando recetas:', error);
@@ -37,7 +37,7 @@ export default function AgregarIngredientesAReceta() {
 
   const loadIngredientes = async () => {
     try {
-      const data = await ingredienteService.getAll();
+      const data = await ingredientService.getAll();
       setIngredientes(data);
     } catch (error) {
       console.error('Error cargando ingredientes:', error);
@@ -62,7 +62,7 @@ export default function AgregarIngredientesAReceta() {
     try {
       const newItem = await recetaIngredienteService.addToReceta(
         selectedRecetaId,
-        parseInt(selectedIngrediente),
+        Number(selectedIngrediente),
         cantidad,
         unidad,
       );
@@ -106,7 +106,7 @@ export default function AgregarIngredientesAReceta() {
             >
               <option value="">Selecciona un ingrediente</option>
               {ingredientes.map((ing) => (
-                <option key={ing.id} value={ing.id}>
+                <option key={ing.idIngredient} value={ing.idIngredient}>
                   {ing.nombre}
                 </option>
               ))}

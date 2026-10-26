@@ -16,6 +16,18 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
         return;
     }
 
+    if (typeof err === 'object' && err !== null && 'code' in err) {
+        const code = (err as { code?: unknown }).code;
+        if (code === 'P2002') {
+            res.status(409).json({ message: 'Ya existe un registro con esos datos.' });
+            return;
+        }
+        if (code === 'P2003') {
+            res.status(409).json({ message: 'El registro está relacionado con otros datos.' });
+            return;
+        }
+    }
+
     // 2) JSON mal formado en el body (lo detecta express.json() antes de llegar a los controladores)
     if (typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.parse.failed') {
         res.status(400).json({ message: 'El JSON enviado no es válido' });

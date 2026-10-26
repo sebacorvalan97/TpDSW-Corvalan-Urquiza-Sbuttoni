@@ -1,69 +1,67 @@
-/**
- * CAPA DE DATOS (Repository) de Ingredientes.
- *
- * Su ÚNICA responsabilidad es guardar y buscar ingredientes. No valida nada ni sabe de HTTP.
- * Hoy los datos viven en un arreglo en memoria (se pierden al apagar el servidor).
- * Cuando agreguemos la base de datos + ORM, solo hay que cambiar ESTE archivo:
- * el servicio, el controlador y el frontend siguen funcionando igual.
- */
+import { prisma } from '../prisma.js';
 
-// Forma completa de un ingrediente, tal cual la devuelve la API.
 export interface Ingredient {
     idIngredient: number;
     nombre: string;
     descripcion: string;
-    // Unidad en la que normalmente se mide (ej: 'g' para harina, 'unidad' para huevo).
-    // Después, al armar una receta, esta unidad se propone por defecto.
     unidadMedidaDefecto: string;
 }
 
-// Datos que envía el usuario para crear/editar (el id lo asigna el sistema, no el usuario).
-// Omit<Tipo, 'campo'> significa: "el mismo tipo, pero sin ese campo".
 export type IngredientInput = Omit<Ingredient, 'idIngredient'>;
 
-// "Base de datos" en memoria.
-const ingredients: Ingredient[] = [];
-// Contador para dar ids únicos y crecientes: 1, 2, 3...
-let nextId = 1;
+const fromDatabase = (ingredient: {
+    idIngrediente: number;
+    nombreIngrediente: string;
+    descripcion: string;
+    unidadMedidaDefecto: string;
+}): Ingredient => ({
+    idIngredient: ingredient.idIngrediente,
+    nombre: ingredient.nombreIngrediente,
+    descripcion: ingredient.descripcion,
+    unidadMedidaDefecto: ingredient.unidadMedidaDefecto,
+});
 
 export const ingredientRepository = {
-    // READ (todos)
-    getAllIngredients: (): Ingredient[] => {
-        return ingredients;
+    getAllIngredients: async (): Promise<Ingredient[]> => {
+        const ingredients = await prisma.ingrediente.findMany({ orderBy: { idIngrediente: 'asc' } });
+        return ingredients.map(fromDatabase);
     },
 
-    // READ (uno). Devuelve null si no existe.
-    getIngredientById: (idIngredient: number): Ingredient | null => {
-        return ingredients.find((i) => i.idIngredient === idIngredient) ?? null;
+    getIngredientById: async (idIngredient: number): Promise<Ingredient | null> => {
+        const ingredient = await prisma.ingrediente.findUnique({ where: { idIngrediente: idIngredient } });
+        return ingredient ? fromDatabase(ingredient) : null;
     },
 
-    // Búsqueda por nombre exacto sin distinguir mayúsculas (sirve para evitar duplicados).
-    getIngredientByName: (nombre: string): Ingredient | null => {
-        const buscado = nombre.toLowerCase();
-        return ingredients.find((i) => i.nombre.toLowerCase() === buscado) ?? null;
+    getIngredientByName: async (nombre: string): Promise<Ingredient | null> => {
+        const ingredient = await prisma.ingrediente.findUnique({ where: { nombreIngrediente: nombre } });
+        return ingredient ? fromDatabase(ingredient) : null;
     },
 
-    // CREATE
-    createIngredient: (data: IngredientInput): Ingredient => {
-        const newIngredient: Ingredient = { idIngredient: nextId++, ...data };
-        ingredients.push(newIngredient);
-        return newIngredient;
+    createIngredient: async (data: IngredientInput): Promise<Ingredient> => {
+        const ingredient = await prisma.ingrediente.create({
+            data: {
+                nombreIngrediente: data.nombre,
+                descripcion: data.descripcion,
+                unidadMedidaDefecto: data.unidadMedidaDefecto,
+            },
+        });
+        return fromDatabase(ingredient);
     },
 
-    // UPDATE. Devuelve el ingrediente actualizado o null si el id no existe.
-    updateIngredient: (idIngredient: number, data: IngredientInput): Ingredient | null => {
-        const index = ingredients.findIndex((i) => i.idIngredient === idIngredient);
-        if (index === -1) return null;
-        const updated: Ingredient = { idIngredient, ...data };
-        ingredients[index] = updated;
-        return updated;
+    updateIngredient: async (idIngredient: number, data: IngredientInput): Promise<Ingredient | null> => {
+        const updated = await prisma.ingrediente.updateMany({
+            where: { idIngrediente: idIngredient },
+            data: {
+                nombreIngrediente: data.nombre,
+                descripcion: data.descripcion,
+                unidadMedidaDefecto: data.unidadMedidaDefecto,
+            },
+        });
+        return updated.count === 0 ? null : ingredientRepository.getIngredientById(idIngredient);
     },
 
-    // DELETE. Devuelve true si se borró, false si el id no existía.
-    deleteIngredient: (idIngredient: number): boolean => {
-        const index = ingredients.findIndex((i) => i.idIngredient === idIngredient);
-        if (index === -1) return false;
-        ingredients.splice(index, 1);   // splice(posición, cantidad) elimina elementos del arreglo
-        return true;
+    deleteIngredient: async (idIngredient: number): Promise<boolean> => {
+        const deleted = await prisma.ingrediente.deleteMany({ where: { idIngrediente: idIngredient } });
+        return deleted.count > 0;
     },
 };
