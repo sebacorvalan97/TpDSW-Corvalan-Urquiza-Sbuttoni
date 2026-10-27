@@ -36,6 +36,79 @@ import { userDataService, type CommentApi } from './services/user-data.service';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
+const SESSION_KEY = 'bodegon-session';
+
+const toUiRecipe = (apiRecipe: Awaited<ReturnType<typeof recetaService.getAllRecetas>>[number]): Receta => {
+  const recipeId = String(apiRecipe.idRecipe);
+  const dishId = String(apiRecipe.idDish);
+  return {
+    id: `rec-${recipeId}`,
+    platoId: dishId,
+    plato: {
+      id: dishId,
+      nombre: apiRecipe.nombre,
+      descripcion: apiRecipe.descripcion,
+      imagenUrl: apiRecipe.imagenUrl,
+      categoriaId: apiRecipe.idCategory === null ? '' : String(apiRecipe.idCategory),
+      origenId: apiRecipe.origins[0] ? String(apiRecipe.origins[0].idOrigin) : '',
+      dificultadId: apiRecipe.idDifficulty === null ? '' : String(apiRecipe.idDifficulty),
+    },
+    tiempoPreparacionMin: apiRecipe.tiempoMinutos,
+    tiempoCoccionMin: 0,
+    porcionesBase: 1,
+    ingredientes: apiRecipe.ingredients.map((ingredient) => ({
+      id: String(ingredient.idIngredient),
+      nombre: ingredient.nombre,
+      unidadMedidaDefecto: ingredient.unidadMedidaDefecto,
+      cantidad: ingredient.cantidad,
+      unidad: ingredient.unidad,
+      sustitutos: [],
+    })),
+    pasos: apiRecipe.steps.map((step) => step.descripcion),
+    calificacionPromedio: apiRecipe.ratingAverage,
+    totalCalificaciones: apiRecipe.ratingCount,
+    creadorUsuarioId: apiRecipe.createdByUserId === null ? '' : `usr-${apiRecipe.createdByUserId}`,
+    creadorNombre: apiRecipe.createdByName ?? 'Comunidad',
+    esFavorito: false,
+  };
+};
+
+const toUiComment = (comment: CommentApi, recipeId: number): Comentario => ({
+  id: String(comment.id),
+  recetaId: `rec-${recipeId}`,
+  usuarioId: `usr-${comment.userId}`,
+  nombreUsuario: comment.userName,
+  avatarUsuario: comment.avatar,
+  calificacion: comment.rating,
+  texto: comment.text,
+  fecha: comment.date,
+  likes: comment.likes,
+  likedByUser: comment.likedByUser,
+});
+
+const readStoredSession = (): AuthSession | null => {
+  try {
+    const stored = sessionStorage.getItem(SESSION_KEY);
+    if (!stored) return null;
+    const session = JSON.parse(stored) as AuthSession;
+    if (
+      typeof session.token !== 'string' ||
+      (session.role !== 'user' && session.role !== 'admin') ||
+      typeof session.id !== 'number' ||
+      typeof session.name !== 'string' ||
+      typeof session.mail !== 'string'
+    ) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch (error: unknown) {
+    sessionStorage.removeItem(SESSION_KEY);
+    console.error('No se pudo restaurar la sesión guardada.', error);
+    return null;
+  }
+};
+
 export default function App() {
   // Global App States
   const [recetas, setRecetas] = useState<Receta[]>([]);
