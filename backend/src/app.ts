@@ -29,8 +29,8 @@ app.use('/api/recipes', recipeRouter);
 app.use('/api', recipeCatalogRouter);
 app.use('/api/user-data', userFeaturesRouter);
 app.use('/api', commentRouter);
+app.use(substituteIngredientRouter);
 app.use('/api/ingredients', ingredientRouter);
-app.use('/api/ingredients/:ingredientId/substitutes', substituteIngredientRouter);
 app.use('/api/pasos-receta', pasoRecetaRouter);
 app.use('/api/recipes-ingredientes', recetaIngredienteRouter);
 

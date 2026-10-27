@@ -1,10 +1,8 @@
 /**
  * CAPA DE RUTAS de Ingredientes Sustitutos.
- * Asocia cada "verbo HTTP + URL" con la función del controlador que la atiende.
- * Se monta con app.use('/api/ingredients/:ingredientId/substitutes', substituteIngredientRouter),
- * y utiliza mergeParams: true para poder acceder al parámetro :ingredientId definido en la ruta padre.
+ * Montado en app.ts.
  *
- * Las URLs finales son:
+ * Las URLs son:
  *   GET    /api/ingredients/:ingredientId/substitutes      → listar todos los sustitutos de un ingrediente
  *   GET    /api/ingredients/:ingredientId/substitutes/:id  → ver un sustituto
  *   POST   /api/ingredients/:ingredientId/substitutes      → crear un sustituto
@@ -14,10 +12,10 @@
 import { Router } from 'express';
 import { substituteIngredientController } from '../controllers/substitute-ingredient.controller.js';
 
-export const substituteIngredientRouter: Router = Router({ mergeParams: true });
+export const substituteIngredientRouter: Router = Router();
 
-substituteIngredientRouter.get('/', substituteIngredientController.getAllSubstitutes);
-substituteIngredientRouter.post('/', substituteIngredientController.createSubstitute);
-substituteIngredientRouter.put('/:id', substituteIngredientController.updateSubstitute);
-substituteIngredientRouter.delete('/:id', substituteIngredientController.deleteSubstitute);
-substituteIngredientRouter.get('/:id', substituteIngredientController.getSubstituteById);
+substituteIngredientRouter.get('/api/ingredients/:ingredientId/substitutes', substituteIngredientController.getAllSubstitutes);
+substituteIngredientRouter.post('/api/ingredients/:ingredientId/substitutes', substituteIngredientController.createSubstitute);
+substituteIngredientRouter.put('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.updateSubstitute);
+substituteIngredientRouter.delete('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.deleteSubstitute);
+substituteIngredientRouter.get('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.getSubstituteById);
