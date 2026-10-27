@@ -85,9 +85,7 @@ export default function RecipeDiscover({
 
       if (selectedMaxTime !== 'all') {
         const totalMinutes =
-          (receta.tiempoPreparacionMin || 0) + (receta.tiempoCoccionMin || 0) ||
-          receta.tiempoMinutos ||
-          0;
+          (receta.tiempoPreparacionMin || 0) + (receta.tiempoCoccionMin || 0);
         if (totalMinutes > selectedMaxTime) return false;
       }
 

@@ -321,28 +321,6 @@ export default function App() {
     setIsWizardOpen(true);
   };
 
-<<<<<<< HEAD
-  const getCategoryIcon = (nombre: string): string => {
-    const lower = nombre.toLowerCase();
-    if (lower.includes('pasta')) return 'local_pizza';
-    if (lower.includes('postre') || lower.includes('dulce')) return 'cake';
-    if (lower.includes('ensalada') || lower.includes('vegano')) return 'eco';
-    if (lower.includes('principal') || lower.includes('carne') || lower.includes('cena')) return 'dinner_dining';
-    if (lower.includes('sopa') || lower.includes('caldo') || lower.includes('ramen')) return 'ramen_dining';
-    if (lower.includes('bebida') || lower.includes('trago')) return 'local_bar';
-    if (lower.includes('entrada') || lower.includes('snack')) return 'tapas';
-    if (lower.includes('guarnicion') || lower.includes('papa')) return 'lunch_dining';
-    return 'restaurant';
-  };
-
-  // Categorías sincronizadas dinámicamente desde la base de datos para los accesos rápidos
-  const quickCategories = useMemo(() => {
-    return categorias.map((cat) => ({
-      id: cat.id,
-      label: cat.nombre,
-      icon: getCategoryIcon(cat.nombre),
-    }));
-=======
   // Categorías destacadas dinámicas basadas en la base de datos con iconos representativos
   const quickCategories = useMemo(() => {
     const iconRules: Array<[string, string]> = [
@@ -374,7 +352,6 @@ export default function App() {
         icon,
       };
     });
->>>>>>> origin/main
   }, [categorias]);
 
   // Toggle favorite
