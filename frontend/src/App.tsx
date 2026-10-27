@@ -355,8 +355,12 @@ export default function App() {
 
   // Toggle favorite
   const handleToggleFavorite = async (recetaId: string) => {
-    if (authSession?.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para guardar recetas en favoritos.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para guardar favoritos.');
       return;
     }
     try {
@@ -373,8 +377,12 @@ export default function App() {
 
   // Add Comment & Rating
   const handleAddComment = async (recetaId: string, rating: number, text: string) => {
-    if (!authSession || authSession.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para publicar un comentario y calificar la receta.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para publicar comentarios.');
       return;
     }
     try {
@@ -400,11 +408,16 @@ export default function App() {
   };
 
   const handleLikeComment = async (comentarioId: string) => {
-    if (!authSession || authSession.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para indicar que te gusta un comentario.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para dar "Me gusta" a los comentarios.');
       return;
     }
     try {
+      setOperationError('');
       const updated = await userDataService.toggleCommentLike(Number(comentarioId));
       setComentarios((previous) => previous.map((comment) => comment.id === comentarioId
         ? { ...comment, likes: updated.likes, likedByUser: updated.likedByUser }
