@@ -1,251 +1,297 @@
-﻿// Etiquetas destacadas que se muestran en el panel lateral de Descubrir.
-import type { Receta } from '../types';
-import type { AuthSession } from './AuthPanel';
+import { useState, useMemo } from 'react';
+import type { Categoria, Dificultad, Origen, Receta } from '../types';
+import RecipeCard from './RecipeCard';
 
-const tags = ['Italiana', 'Vegana', 'Rápida', 'Verano'];
-
-// Propiedades requeridas por esta vista; permite solicitar al padre que abra el asistente de recetas.
 interface Props {
   recetas: Receta[];
-  onAddRecipe: () => void;
-  onShowRecipes: () => void;
-  onCreateUser: () => void;
-  onAdmin: () => void;
-  onSignIn: () => void;
-  onSignOut: () => void;
-  authSession: AuthSession | null;
-  errorMessage?: string;
+  categorias?: Categoria[];
+  origenes?: Origen[];
+  dificultades?: Dificultad[];
+  onSelectRecipe: (recipe: Receta) => void;
+  onAddRecipe?: () => void;
 }
 
-// Pantalla de exploración con navegación, búsqueda, filtros, estado vacío y acceso a crear receta.
-export default function RecipeDiscover({ recetas, onAddRecipe, onShowRecipes, onCreateUser, onAdmin, onSignIn, onSignOut, authSession, errorMessage }: Props) {
+const getCategoryIcon = (nombre: string): string => {
+  const lower = nombre.toLowerCase();
+  if (lower.includes('pasta')) return 'local_pizza';
+  if (lower.includes('postre') || lower.includes('dulce')) return 'cake';
+  if (lower.includes('ensalada') || lower.includes('vegano')) return 'eco';
+  if (lower.includes('principal') || lower.includes('carne') || lower.includes('cena')) return 'dinner_dining';
+  if (lower.includes('sopa') || lower.includes('caldo') || lower.includes('ramen')) return 'ramen_dining';
+  if (lower.includes('bebida') || lower.includes('trago')) return 'local_bar';
+  if (lower.includes('entrada') || lower.includes('snack')) return 'tapas';
+  if (lower.includes('guarnicion') || lower.includes('papa')) return 'lunch_dining';
+  return 'restaurant';
+};
+
+export default function RecipeDiscover({
+  recetas,
+  categorias = [],
+  origenes = [],
+  dificultades = [],
+  onSelectRecipe,
+}: Props) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedOrigin, setSelectedOrigin] = useState<string>('all');
+  const [selectedMaxTime, setSelectedMaxTime] = useState<'all' | number>('all');
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setSelectedDifficulty('all');
+    setSelectedOrigin('all');
+    setSelectedMaxTime('all');
+  };
+
+  const hasActiveFilters =
+    searchTerm.trim() !== '' ||
+    selectedCategory !== 'all' ||
+    selectedDifficulty !== 'all' ||
+    selectedOrigin !== 'all' ||
+    selectedMaxTime !== 'all';
+
+  const quickCategories = useMemo(() => {
+    return categorias.map((cat) => ({
+      id: cat.id,
+      label: cat.nombre,
+      icon: getCategoryIcon(cat.nombre),
+    }));
+  }, [categorias]);
+
+  const filteredRecetas = useMemo(() => {
+    return recetas.filter((r) => {
+      if (selectedCategory !== 'all' && r.plato.categoriaId !== selectedCategory) {
+        return false;
+      }
+
+      if (selectedOrigin !== 'all' && r.plato.origenId !== selectedOrigin) {
+        return false;
+      }
+
+      if (selectedDifficulty !== 'all' && r.plato.dificultadId !== selectedDifficulty) {
+        return false;
+      }
+
+      if (selectedMaxTime !== 'all' && (r.tiempoPreparacionMin + r.tiempoCoccionMin) > selectedMaxTime) {
+        return false;
+      }
+
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase();
+        const matchName = r.plato.nombre.toLowerCase().includes(query);
+        const matchDesc = r.plato.descripcion.toLowerCase().includes(query);
+        const cat = categorias.find((c) => c.id === r.plato.categoriaId);
+        const orig = origenes.find((o) => o.id === r.plato.origenId);
+        const matchCat = cat?.nombre.toLowerCase().includes(query);
+        const matchOrig = orig?.pais.toLowerCase().includes(query);
+        const matchIng = r.ingredientes.some((i) => i.nombre.toLowerCase().includes(query));
+
+        if (!matchName && !matchDesc && !matchCat && !matchOrig && !matchIng) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [
+    recetas,
+    searchTerm,
+    selectedCategory,
+    selectedOrigin,
+    selectedDifficulty,
+    selectedMaxTime,
+    categorias,
+    origenes,
+  ]);
+
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md overflow-x-hidden">
-      {/* Cabecera del sitio: marca, navegación de escritorio y acceso para agregar una receta. */}
-      <header className="bg-surface-bright shadow-sm sticky top-0 z-50">
-        {/* Navegación superior con enlaces de sección y acción para abrir la creación. */}
-        <nav className="flex justify-between items-center w-full px-4 md:px-8 py-4 max-w-7xl mx-auto">
-          <div className="font-display-lg text-3xl text-primary">El Bodegón Digital</div>
-
-          <div className="hidden md:flex items-center space-x-6">
-            
-            <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onShowRecipes} type="button">
-              Recetas
-            </button>
-            <a className="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-container transition-colors duration-200" href="#">
-              Descubrir
-            </a>
-            <a className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">
-              Categorías
-            </a>
-          
+    <div className="space-y-8">
+      {/* Banner Principal de Descubrir (Hero estilizado con paleta de El Bodegón) */}
+      <section className="relative w-full h-[220px] sm:h-[260px] rounded-2xl overflow-hidden shadow-lg border border-[#c2c9bb]/30 bg-gradient-to-r from-[#154212] via-[#23501e] to-[#2d5a27] p-6 sm:p-10 flex flex-col justify-end text-white">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none hidden sm:block">
+          <span className="material-symbols-outlined text-[160px]">explore</span>
+        </div>
+        <div className="relative z-10 max-w-xl">
+          <div className="flex gap-2 mb-2">
+            <span className="bg-[#6d4820]/90 backdrop-blur-md text-[#ecb987] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
+              Comunidad
+            </span>
+            <span className="bg-white/20 backdrop-blur-md text-[#bcf0ae] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
+              Nuevos Sabores
+            </span>
           </div>
-           
-          <div className="flex items-center space-x-3">
-            {authSession && (
-            <button className="hidden lg:flex items-center bg-primary text-on-primary px-3 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all" onClick={onAddRecipe} type="button">
-              <span className="material-symbols-outlined mr-2">add</span>
-              Agregar receta
-            </button>
-            )}
-            
-            {!authSession && (
+          <h1 className="font-serif-display text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
+            Descubrir Recetas
+          </h1>
+          <p className="text-xs sm:text-sm text-white/90 leading-relaxed line-clamp-2">
+            Explora platos preparados por la comunidad de El Bodegón Digital. Encuentra tu próxima comida favorita filtrando por tiempo, origen o ingredientes.
+          </p>
+        </div>
+      </section>
+
+      {/* Selector Rápido de Categorías */}
+      {quickCategories.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif-display text-base font-bold text-[#154212]">
+              Explorar por Categoría
+            </h2>
+            {selectedCategory !== 'all' && (
               <button
                 type="button"
-                onClick={onCreateUser}
-                className="flex items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
+                onClick={() => setSelectedCategory('all')}
+                className="text-xs text-[#154212] font-semibold hover:underline"
               >
-                <span className="material-symbols-outlined mr-1.5 text-lg">person_add</span>
-                Crear usuario
+                Ver todas
               </button>
             )}
-            {authSession?.role === 'admin' && (
-              <button
-                type="button"
-                onClick={onAdmin}
-                className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-medium text-primary hover:bg-surface-container-low"
-              >
-                Panel administrador
-              </button>
-            )}
-            {authSession ? (
-              <div className="flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-2 py-1">
-                <span
-                  aria-label={`Perfil de ${authSession.name}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary-fixed bg-primary font-semibold text-on-primary"
-                >
-                  {authSession.name.charAt(0).toUpperCase()}
-                </span>
-                <span className="hidden max-w-32 truncate text-sm font-medium text-on-surface sm:inline">
-                  {authSession.name}
-                </span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            {quickCategories.map((item) => {
+              const isSelected = selectedCategory === item.id;
+              return (
                 <button
+                  key={item.id}
                   type="button"
-                  onClick={onSignOut}
-                  className="rounded-full px-2 py-1 text-sm font-medium text-secondary hover:bg-surface-container-high"
+                  onClick={() => setSelectedCategory(isSelected ? 'all' : item.id)}
+                  className="shrink-0 text-left focus:outline-hidden group"
                 >
-                  Salir
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={onSignIn} className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-medium text-primary">
-                Iniciar sesión
-              </button>
-            )}
-          </div>
-        </nav>
-      </header>
-
-      {/* Cuerpo de Descubrir: menú de escritorio a la izquierda y herramientas de exploración al centro. */}
-      <div className="flex max-w-7xl mx-auto px-4 md:px-8 min-h-screen">
-        {/* Navegación lateral y etiquetas de interés, visibles en pantallas grandes. */}
-        <aside className="hidden lg:flex flex-col h-[calc(100vh-80px)] w-64 sticky top-20 py-8 px-4 space-y-4 bg-surface-container-low border-r border-outline-variant">
-          <div className="pb-4">
-            <h3 className="font-headline-md text-2xl text-primary">Mi cocina</h3>
-            <p className="font-label-md text-sm text-on-surface-variant opacity-70">Descubre recetas</p>
-          </div>
-
-          <nav className="space-y-2 flex-1">
-            <button className="flex w-full items-center p-3 text-left text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" onClick={onShowRecipes} type="button">
-              <span className="material-symbols-outlined mr-3">book</span>
-              <span className="font-label-md">Recetas</span>
-            </button>
-            <a className="flex items-center p-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-transform" href="#">
-              <span className="material-symbols-outlined mr-3">explore</span>
-              <span className="font-label-md">Descubrir</span>
-            </a>
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
-              <span className="material-symbols-outlined mr-3">category</span>
-              <span className="font-label-md">Categorías</span>
-            </a>
-            {authSession && (
-              <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
-                <span className="material-symbols-outlined mr-3">kitchen</span>
-                <span className="font-label-md">Mi despensa</span>
-              </a>
-            )}
-          </nav>
-
-          {/* Lista de etiquetas populares usada como guía visual para explorar recetas. */}
-          <div className="pt-6 border-t border-outline-variant">
-            <p className="font-label-sm uppercase tracking-widest mb-3 text-on-surface-variant">Etiquetas populares</p>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span key={tag} className="bg-tertiary/10 text-tertiary px-2 py-1 rounded-full text-xs font-semibold">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-auto pt-4">
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
-              <span className="material-symbols-outlined mr-3">settings</span>
-              <span className="font-label-md">Configuración</span>
-            </a>
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
-              <span className="material-symbols-outlined mr-3">help</span>
-              <span className="font-label-md">Ayuda</span>
-            </a>
-          </div>
-        </aside>
-
-        {/* Área principal con búsqueda, filtros disponibles y mensaje cuando no hay recetas. */}
-        <main className="flex-1 py-4 lg:pl-8">
-          {errorMessage && <p className="mb-4 rounded-lg bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]" role="alert">{errorMessage}</p>}
-          {/* Herramientas de descubrimiento: campo de búsqueda y filtros de ejemplo. */}
-          <section className="mb-8">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-outline">search</span>
-              </div>
-              <input
-                className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-4 pl-14 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-all text-body-lg"
-                placeholder="Buscar recetas, ingredientes o tipos de cocina..."
-                type="text"
-              />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              {['Categoría', 'Dificultad', 'Origen', 'Tiempo de preparación'].map((filter) => (
-                <div key={filter} className="relative group/filter">
-                  <button className="flex items-center bg-surface-container-lowest border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container hover:shadow-sm transition-all">
-                    <span className="font-label-md mr-2">{filter}</span>
-                    <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
-                  </button>
-                </div>
-              ))}
-
-              <div className="h-6 w-px bg-outline-variant mx-2" />
-              <button type="button" className="text-primary font-label-md hover:underline">
-                Borrar todo
-              </button>
-            </div>
-          </section>
-
-          {/* Muestra las recetas que App mantiene en estado o una invitación a crear la primera. */}
-          {recetas.length === 0 ? (
-            <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
-              <span className="material-symbols-outlined mb-3 text-4xl text-secondary">menu_book</span>
-              <h2 className="font-headline-md text-xl text-primary">Todavía no hay recetas</h2>
-              <p className="mt-2 max-w-md text-sm text-on-surface-variant">
-                Las recetas aparecerán aquí cuando se agreguen.
-              </p>
-            </div>
-          ) : (
-            <section aria-label="Recetas disponibles" className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {recetas.map((receta) => (
-                <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm" key={receta.id}>
-                  {receta.plato.imagenUrl && (
-                    <img
-                      alt={`Imagen de ${receta.plato.nombre}`}
-                      className="h-48 w-full object-cover"
-                      src={receta.plato.imagenUrl}
-                    />
-                  )}
-                  <div className="p-5">
-                    <h2 className="font-headline-md text-xl text-primary">{receta.plato.nombre}</h2>
-                    <p className="mt-2 line-clamp-3 text-sm text-on-surface-variant">{receta.plato.descripcion}</p>
-                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-secondary">
-                      <span>{receta.ingredientes.length} ingredientes</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{receta.pasos.length} pasos</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{receta.calificacionPromedio.toFixed(1)} ★</span>
-                    </div>
+                  <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'bg-[#bcf0ae] border-[#154212] shadow-sm text-[#154212] font-bold'
+                      : 'bg-white border-[#c2c9bb] text-[#605e5b] hover:bg-[#f6f3f2] hover:text-[#154212]'
+                  }`}>
+                    <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                    <span className="text-xs font-semibold">{item.label}</span>
                   </div>
-                </article>
-              ))}
-            </section>
-          )}
-        </main>
-      </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* Navegación inferior móvil; el botón Crear invoca la acción recibida desde App. */}
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-xl">
-        <button type="button" className="flex flex-col items-center justify-center text-secondary" onClick={onShowRecipes}>
-          <span className="material-symbols-outlined">menu_book</span>
-          <span className="font-label-sm text-[10px]">Recetas</span>
-        </button>
-        <button type="button" className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 duration-150">
-          <span className="material-symbols-outlined">search</span>
-          <span className="font-label-sm text-[10px]">Descubrir</span>
-        </button>
-        <button type="button" className="flex flex-col items-center justify-center text-secondary" onClick={onAddRecipe}>
-          <span className="material-symbols-outlined">add_circle</span>
-          <span className="font-label-sm text-[10px]">Crear</span>
-        </button>
-        <button type="button" className="flex flex-col items-center justify-center text-secondary">
-          <span className="material-symbols-outlined">grid_view</span>
-          <span className="font-label-sm text-[10px]">Categorías</span>
-        </button>
-        {authSession && (
-          <button type="button" className="flex flex-col items-center justify-center text-secondary">
-            <span className="material-symbols-outlined">inventory_2</span>
-            <span className="font-label-sm text-[10px]">Despensa</span>
-          </button>
+      {/* Barra de Búsqueda y Filtros con diseño unificado */}
+      <section className="bg-white p-4 rounded-2xl border border-[#c2c9bb]/60 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#72796e] text-lg pointer-events-none">
+            search
+          </span>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar recetas, ingredientes o tipos de cocina..."
+            className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl py-3 pl-11 pr-4 text-xs sm:text-sm text-[#1b1c1c] focus:ring-2 focus:ring-[#154212] focus:outline-hidden transition-all"
+          />
+        </div>
+
+        {/* Píldoras de Filtros */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="bg-[#fbf9f8] border border-[#c2c9bb] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#42493e] focus:outline-hidden"
+          >
+            <option value="all">Todas las Categorías</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            className="bg-[#fbf9f8] border border-[#c2c9bb] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#42493e] focus:outline-hidden"
+          >
+            <option value="all">Toda Dificultad</option>
+            {dificultades.map((d) => (
+              <option key={d.id} value={d.id}>{d.nivel}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedOrigin}
+            onChange={(e) => setSelectedOrigin(e.target.value)}
+            className="bg-[#fbf9f8] border border-[#c2c9bb] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#42493e] focus:outline-hidden"
+          >
+            <option value="all">Todos los Orígenes</option>
+            {origenes.map((o) => (
+              <option key={o.id} value={o.id}>{o.bandera} {o.pais}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedMaxTime}
+            onChange={(e) => setSelectedMaxTime(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            className="bg-[#fbf9f8] border border-[#c2c9bb] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#42493e] focus:outline-hidden"
+          >
+            <option value="all">Cualquier Tiempo</option>
+            <option value="25">≤ 25 min (Express)</option>
+            <option value="45">≤ 45 min</option>
+            <option value="60">≤ 60 min</option>
+            <option value="120">≤ 120 min</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-xs text-[#154212] font-semibold hover:underline ml-auto flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+              Borrar filtros
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* Cuadrícula de Recetas con RecipeCard */}
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-xs text-[#605e5b] font-medium">
+            Mostrando {filteredRecetas.length} de {recetas.length} recetas
+          </span>
+        </div>
+
+        {filteredRecetas.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#c2c9bb] p-8 space-y-3">
+            <span className="material-symbols-outlined text-4xl text-[#72796e]">
+              search_off
+            </span>
+            <h3 className="font-serif-display text-lg font-bold text-[#154212]">
+              No se encontraron recetas
+            </h3>
+            <p className="text-xs text-[#605e5b] max-w-sm mx-auto">
+              Intenta buscar con otros términos o limpia los filtros seleccionados.
+            </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="px-4 py-2 rounded-lg bg-[#154212] text-white text-xs font-bold hover:bg-[#2d5a27] transition-colors"
+              >
+                Restablecer Filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredRecetas.map((receta) => (
+              <RecipeCard
+                key={receta.id}
+                receta={receta}
+                categorias={categorias}
+                origenes={origenes}
+                dificultades={dificultades}
+                onSelect={onSelectRecipe}
+              />
+            ))}
+          </div>
         )}
-      </nav>
+      </section>
     </div>
   );
 }

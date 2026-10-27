@@ -140,6 +140,13 @@ export const adminRepository = {
 
     count: async (): Promise<number> => prisma.administrador.count(),
 
+    countActive: async (): Promise<number> => prisma.cuenta.count({
+        where: {
+            administrador: { isNot: null },
+            estado: { in: ['activo', 'active'] },
+        },
+    }),
+
     authenticate: async (mail: string, password: string): Promise<PublicAdmin | null> => {
         const account = await prisma.cuenta.findFirst({
             where: { mail, administrador: { isNot: null } },

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { recipeRepository, type RecipeWriteData } from '../shared/repositories/recipe.repository.js';
 import { HttpError } from '../shared/errors/http-error.js';
 import { getSessionFromRequest } from '../middleware/auth.js';
+import { assertCanManageRecipe } from '../shared/utils/recipe-authorization.js';
 
 const readRecipeData = (body: unknown, partial: boolean): RecipeWriteData => {
     if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -107,12 +108,7 @@ export const recipeController = {
     updateRecipe: async (req: Request, res: Response) => {
         const idRecipe = readRecipeId(req.params.id);
         const session = getSessionFromRequest(req);
-        if (!session) throw new HttpError(401, 'Inicia sesión para modificar una receta.');
-        const existingRecipe = await recipeRepository.getRecipeById(idRecipe);
-        if (!existingRecipe) return res.status(404).json({ message: 'Receta no encontrada.' });
-        if (session.role !== 'admin' && existingRecipe.createdByUserId !== session.id) {
-            return res.status(403).json({ message: 'Solo puedes modificar tus propias recetas.' });
-        }
+        await assertCanManageRecipe(idRecipe, session);
         const recipe = await recipeRepository.updateRecipe(idRecipe, readRecipeData(req.body, true));
         if (!recipe) return res.status(404).json({ message: 'Receta no encontrada.' });
         return res.json(recipe);
@@ -121,12 +117,7 @@ export const recipeController = {
     deleteRecipe: async (req: Request, res: Response) => {
         const idRecipe = readRecipeId(req.params.id);
         const session = getSessionFromRequest(req);
-        if (!session) throw new HttpError(401, 'Inicia sesión para eliminar una receta.');
-        const existingRecipe = await recipeRepository.getRecipeById(idRecipe);
-        if (!existingRecipe) return res.status(404).json({ message: 'Receta no encontrada.' });
-        if (session.role !== 'admin' && existingRecipe.createdByUserId !== session.id) {
-            return res.status(403).json({ message: 'Solo puedes eliminar tus propias recetas.' });
-        }
+        await assertCanManageRecipe(idRecipe, session);
         await recipeRepository.deleteRecipe(idRecipe);
         return res.json({ message: 'Receta eliminada correctamente.' });
     },

@@ -32,6 +32,7 @@ import { categoryService } from './services/category.service';
 import { ingredientService } from './services/ingredient.service';
 import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
+import { API_BASE } from './services/http';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
@@ -201,7 +202,7 @@ export default function App() {
   useEffect(() => {
     if (!authSession) return;
     const resource = authSession.role === 'admin' ? 'admins' : 'users';
-    void fetch(`http://localhost:8080/api/${resource}/me`, {
+    void fetch(`${API_BASE}/${resource}/me`, {
       headers: { Authorization: `Bearer ${authSession.token}` },
     }).then(async (response) => {
       if (response.status === 401 || response.status === 403) {
@@ -247,7 +248,7 @@ export default function App() {
   const handleLogout = () => {
     if (authSession) {
       const resource = authSession.role === 'admin' ? 'admins' : 'users';
-      void fetch(`http://localhost:8080/api/${resource}/logout`, {
+      void fetch(`${API_BASE}/${resource}/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authSession.token}` },
       }).catch((error: unknown) => console.error('No se pudo invalidar la sesión en el servidor.', error));
@@ -318,15 +319,27 @@ export default function App() {
     setIsWizardOpen(true);
   };
 
-  // Categorías destacadas con etiquetas e iconos para los accesos rápidos del catálogo.
-  const quickCategories = [
-    { id: 'cat-pastas', label: 'Pastas', icon: 'local_pizza' },
-    { id: 'cat-saludable', label: 'Vegano', icon: 'eco' },
-    { id: 'cat-postres', label: 'Postres', icon: 'cake' },
-    { id: 'cat-carnes', label: 'Cena', icon: 'dinner_dining' },
-    { id: 'cat-mexicana', label: 'Mexicana', icon: 'restaurant' },
-    { id: 'cat-asiatica', label: 'Asiático', icon: 'ramen_dining' }
-  ];
+  const getCategoryIcon = (nombre: string): string => {
+    const lower = nombre.toLowerCase();
+    if (lower.includes('pasta')) return 'local_pizza';
+    if (lower.includes('postre') || lower.includes('dulce')) return 'cake';
+    if (lower.includes('ensalada') || lower.includes('vegano')) return 'eco';
+    if (lower.includes('principal') || lower.includes('carne') || lower.includes('cena')) return 'dinner_dining';
+    if (lower.includes('sopa') || lower.includes('caldo') || lower.includes('ramen')) return 'ramen_dining';
+    if (lower.includes('bebida') || lower.includes('trago')) return 'local_bar';
+    if (lower.includes('entrada') || lower.includes('snack')) return 'tapas';
+    if (lower.includes('guarnicion') || lower.includes('papa')) return 'lunch_dining';
+    return 'restaurant';
+  };
+
+  // Categorías sincronizadas dinámicamente desde la base de datos para los accesos rápidos
+  const quickCategories = useMemo(() => {
+    return categorias.map((cat) => ({
+      id: cat.id,
+      label: cat.nombre,
+      icon: getCategoryIcon(cat.nombre),
+    }));
+  }, [categorias]);
 
   // Toggle favorite
   const handleToggleFavorite = async (recetaId: string) => {
@@ -402,9 +415,9 @@ export default function App() {
       descripcion: recipeData.plato.descripcion,
       imagenUrl: recipeData.plato.imagenUrl,
       duracion: (recipeData.tiempoPreparacionMin ?? 0) + (recipeData.tiempoCoccionMin ?? 0),
-      idCategory: Number(recipeData.plato.categoriaId),
-      idDifficulty: Number(recipeData.plato.dificultadId),
-      idOrigin: Number(recipeData.plato.origenId),
+      idCategory: recipeData.plato.categoriaId ? Number(recipeData.plato.categoriaId) : null,
+      idDifficulty: recipeData.plato.dificultadId ? Number(recipeData.plato.dificultadId) : null,
+      idOrigin: recipeData.plato.origenId ? Number(recipeData.plato.origenId) : null,
       ingredients: (recipeData.ingredientes ?? []).map((ingredient) => ({
         idIngredient: Number(ingredient.id),
         cantidad: ingredient.cantidad ?? 1,
@@ -564,22 +577,6 @@ export default function App() {
     );
   }
 
-  // La vista Descubrir tiene su propio diseño; su acción de crear abre el asistente global.
-  if (currentTab === ('discover' as AppTab)) {
-    return (
-      <RecipeDiscover
-        recetas={recetas}
-        onAddRecipe={createRecipe}
-        onShowRecipes={() => navigateTo('recipes')}
-        onCreateUser={() => setCurrentTab('register')}
-        onAdmin={() => navigateTo('admin')}
-        onSignIn={() => openAuth('user')}
-        onSignOut={handleLogout}
-        authSession={authSession}
-        errorMessage={operationError}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#fbf9f8] text-[#1b1c1c] flex flex-col font-sans">
@@ -858,6 +855,21 @@ export default function App() {
             </>
           )}
 
+          {/* VIEW: DISCOVER */}
+          {currentTab === 'discover' && (
+            <RecipeDiscover
+              recetas={recetas}
+              categorias={categorias}
+              origenes={origenes}
+              dificultades={dificultades}
+              onSelectRecipe={(r) => {
+                setSelectedRecipe(r);
+                setIsCookingDirect(false);
+              }}
+              onAddRecipe={createRecipe}
+            />
+          )}
+
           {/* VIEW: COMMUNITY RANKING */}
           {currentTab === 'ranking' && (
             <CommunityRanking
@@ -1018,6 +1030,8 @@ export default function App() {
           initialCookingMode={isCookingDirect}
           isFavorite={favoriteRecipeIds.includes(Number(selectedRecipe.id.replace(/^rec-/, '')))}
           errorMessage={operationError}
+          canEdit={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
+          canDelete={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
         />
       )}
 

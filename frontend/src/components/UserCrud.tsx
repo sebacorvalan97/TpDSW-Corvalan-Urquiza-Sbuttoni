@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { AuthSession } from './AuthPanel';
+import { API_BASE } from '../services/http';
 
 interface UserFormState {
   name: string;
@@ -23,7 +24,7 @@ const initialForm: UserFormState = {
   bio: '',
 };
 
-const API_URL = 'http://localhost:8080/api/users';
+const API_URL = `${API_BASE}/users`;
 
 interface Props {
   onRegistered: (session: AuthSession) => void;

@@ -48,9 +48,9 @@ export interface RecipeWriteData {
   nombre: string;
   descripcion: string;
   duracion: number;
-  idCategory: number;
-  idDifficulty: number;
-  idOrigin: number;
+  idCategory: number | null;
+  idDifficulty: number | null;
+  idOrigin: number | null;
   imagenUrl: string;
   ingredients: Array<{ idIngredient: number; cantidad: number; unidad: string }>;
   steps: string[];
@@ -61,7 +61,7 @@ const API_URL = `${API_BASE}/recipes`;
 const normalizeRecipe = (recipe: RecipeApiResponse): Receta => ({
   ...recipe,
   idReceta: recipe.idRecipe,
-  tiempoMinutos: Number(recipe.duracion) || 0,
+  tiempoMinutos: parseInt(recipe.duracion, 10) || 0,
 });
 
 const saveRecipe = (url: string, method: 'POST' | 'PUT', data: RecipeWriteData) =>

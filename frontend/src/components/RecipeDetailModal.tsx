@@ -18,11 +18,13 @@ interface Props {
   initialCookingMode: boolean;
   isFavorite: boolean;
   errorMessage: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export default function RecipeDetailModal({
   receta, categorias, origenes, dificultades, comentarios, currentUser, onClose, onToggleFavorite, onAddComment, onLikeComment,
-  onEditRecipe, onDeleteRecipe, isFavorite, errorMessage,
+  onEditRecipe, onDeleteRecipe, isFavorite, errorMessage, canEdit = false, canDelete = false,
 }: Props) {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
@@ -75,10 +77,41 @@ export default function RecipeDetailModal({
           </section>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2 border-t pt-4">
-          <button className="rounded border px-3 py-2" onClick={() => void onToggleFavorite(receta.id)} type="button">{isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}</button>
-          <button className="rounded border px-3 py-2" onClick={() => onEditRecipe(receta)} type="button">Editar</button>
-          <button className="rounded border px-3 py-2 text-red-700" onClick={() => onDeleteRecipe(receta.id)} type="button">Eliminar</button>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
+          <button
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
+              isFavorite
+                ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            onClick={() => void onToggleFavorite(receta.id)}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-base leading-none">
+              {isFavorite ? 'favorite' : 'favorite_border'}
+            </span>
+            {isFavorite ? 'En favoritos' : 'Guardar en favoritos'}
+          </button>
+          {canEdit && (
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              onClick={() => onEditRecipe(receta)}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-base leading-none">edit</span>
+              Editar
+            </button>
+          )}
+          {canDelete && (
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+              onClick={() => onDeleteRecipe(receta.id)}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-base leading-none">delete</span>
+              Eliminar
+            </button>
+          )}
         </div>
 
         <section className="mt-6 border-t pt-5">

@@ -203,7 +203,7 @@ export default function RecipeWizardModal(props: Props) {
 {/* Menú lateral de escritorio con el perfil y los accesos de navegación. */}
 <aside className="hidden lg:flex flex-col h-full py-lg px-md space-y-base bg-surface-container-low dark:bg-surface-container-high border-r border-outline-variant h-full w-64 left-0 fixed">
 <div className="px-2 pb-6">
-<div className="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim">Mi Cocina</div>
+<div className="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim">Descubre</div>
 <div className="text-label-md text-on-surface-variant">Chef Maestro</div>
 </div>
 <nav className="flex-1 space-y-2">
