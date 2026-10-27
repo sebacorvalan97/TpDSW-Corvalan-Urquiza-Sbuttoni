@@ -81,9 +81,9 @@ function validateInput(body: unknown, ingredientePrincipalId: number): Substitut
 /**
  * Valida que el id del ingrediente principal sea válido y que el ingrediente exista en la base de datos.
  */
-function ensureIngredientExists(rawIngredientId: unknown): number {
+async function ensureIngredientExists(rawIngredientId: unknown): Promise<number> {
     const ingredientId = parseId(rawIngredientId);
-    const ingredient = ingredientRepository.getIngredientById(ingredientId);
+    const ingredient = await ingredientRepository.getIngredientById(ingredientId);
     if (!ingredient) {
         throw new HttpError(404, 'Ingrediente principal no encontrado');
     }
@@ -91,37 +91,38 @@ function ensureIngredientExists(rawIngredientId: unknown): number {
 }
 
 export const substituteIngredientService = {
-    getAll: (rawIngredientId: unknown): SubstituteIngredient[] => {
-        const ingredientId = ensureIngredientExists(rawIngredientId);
+    getAll: async (rawIngredientId: unknown): Promise<SubstituteIngredient[]> => {
+        const ingredientId = await ensureIngredientExists(rawIngredientId);
         return substituteIngredientRepository.getAllByIngredientId(ingredientId);
     },
 
-    getById: (rawIngredientId: unknown, rawId: unknown): SubstituteIngredient => {
-        const ingredientId = ensureIngredientExists(rawIngredientId);
+    getById: async (rawIngredientId: unknown, rawId: unknown): Promise<SubstituteIngredient> => {
+        const ingredientId = await ensureIngredientExists(rawIngredientId);
         const id = parseId(rawId);
-        const substitute = substituteIngredientRepository.getSubstituteById(id);
+        const substitute = await substituteIngredientRepository.getSubstituteById(id, ingredientId);
         if (!substitute || substitute.ingredientePrincipalId !== ingredientId) {
             throw new HttpError(404, 'Ingrediente sustituto no encontrado');
         }
         return substitute;
     },
 
-    create: (rawIngredientId: unknown, body: unknown): SubstituteIngredient => {
-        const ingredientId = ensureIngredientExists(rawIngredientId);
+    create: async (rawIngredientId: unknown, body: unknown): Promise<SubstituteIngredient> => {
+        const ingredientId = await ensureIngredientExists(rawIngredientId);
         const data = validateInput(body, ingredientId);
 
         // Regla de negocio: no puede haber dos sustitutos con el mismo nombre para el mismo ingrediente principal.
-        if (substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto)) {
+        const existente = await substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto);
+        if (existente) {
             throw new HttpError(409, 'Ya existe un sustituto con ese nombre para este ingrediente');
         }
         return substituteIngredientRepository.createSubstitute(data);
     },
 
-    update: (rawIngredientId: unknown, rawId: unknown, body: unknown): SubstituteIngredient => {
-        const ingredientId = ensureIngredientExists(rawIngredientId);
+    update: async (rawIngredientId: unknown, rawId: unknown, body: unknown): Promise<SubstituteIngredient> => {
+        const ingredientId = await ensureIngredientExists(rawIngredientId);
         const id = parseId(rawId);
 
-        const existing = substituteIngredientRepository.getSubstituteById(id);
+        const existing = await substituteIngredientRepository.getSubstituteById(id, ingredientId);
         if (!existing || existing.ingredientePrincipalId !== ingredientId) {
             throw new HttpError(404, 'Ingrediente sustituto no encontrado');
         }
@@ -129,24 +130,28 @@ export const substituteIngredientService = {
         const data = validateInput(body, ingredientId);
 
         // Puede conservar su propio nombre, pero no copiar el de OTRO sustituto del mismo ingrediente principal.
-        const mismoNombre = substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto);
+        const mismoNombre = await substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto);
         if (mismoNombre && mismoNombre.idSubstituteIngredient !== id) {
             throw new HttpError(409, 'Ya existe un sustituto con ese nombre para este ingrediente');
         }
 
-        return substituteIngredientRepository.updateSubstitute(id, data) as SubstituteIngredient;
+        const updated = await substituteIngredientRepository.updateSubstitute(id, data);
+        if (!updated) {
+            throw new HttpError(404, 'Ingrediente sustituto no encontrado');
+        }
+        return updated;
     },
 
-    remove: (rawIngredientId: unknown, rawId: unknown): void => {
-        const ingredientId = ensureIngredientExists(rawIngredientId);
+    remove: async (rawIngredientId: unknown, rawId: unknown): Promise<void> => {
+        const ingredientId = await ensureIngredientExists(rawIngredientId);
         const id = parseId(rawId);
 
-        const existing = substituteIngredientRepository.getSubstituteById(id);
+        const existing = await substituteIngredientRepository.getSubstituteById(id, ingredientId);
         if (!existing || existing.ingredientePrincipalId !== ingredientId) {
             throw new HttpError(404, 'Ingrediente sustituto no encontrado');
         }
 
-        const deleted = substituteIngredientRepository.deleteSubstitute(id);
+        const deleted = await substituteIngredientRepository.deleteSubstitute(id, ingredientId);
         if (!deleted) {
             throw new HttpError(404, 'Ingrediente sustituto no encontrado');
         }

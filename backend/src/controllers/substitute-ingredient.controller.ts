@@ -13,29 +13,29 @@ import { substituteIngredientService } from '../services/substitute-ingredient.s
 
 export const substituteIngredientController = {
     // GET /api/ingredients/:ingredientId/substitutes → lista todos los sustitutos del ingrediente
-    getAllSubstitutes: (req: Request, res: Response) => {
-        res.json(substituteIngredientService.getAll(req.params.ingredientId));
+    getAllSubstitutes: async (req: Request, res: Response) => {
+        res.json(await substituteIngredientService.getAll(req.params.ingredientId));
     },
 
     // GET /api/ingredients/:ingredientId/substitutes/:id → uno solo
-    getSubstituteById: (req: Request, res: Response) => {
-        res.json(substituteIngredientService.getById(req.params.ingredientId, req.params.id));
+    getSubstituteById: async (req: Request, res: Response) => {
+        res.json(await substituteIngredientService.getById(req.params.ingredientId, req.params.id));
     },
 
     // POST /api/ingredients/:ingredientId/substitutes → crea. Responde 201 (Created) con el sustituto nuevo.
-    createSubstitute: (req: Request, res: Response) => {
-        const created = substituteIngredientService.create(req.params.ingredientId, req.body);
+    createSubstitute: async (req: Request, res: Response) => {
+        const created = await substituteIngredientService.create(req.params.ingredientId, req.body);
         res.status(201).json(created);
     },
 
     // PUT /api/ingredients/:ingredientId/substitutes/:id → modifica
-    updateSubstitute: (req: Request, res: Response) => {
-        res.json(substituteIngredientService.update(req.params.ingredientId, req.params.id, req.body));
+    updateSubstitute: async (req: Request, res: Response) => {
+        res.json(await substituteIngredientService.update(req.params.ingredientId, req.params.id, req.body));
     },
 
     // DELETE /api/ingredients/:ingredientId/substitutes/:id → elimina. Responde 204 (No Content): salió bien, sin cuerpo.
-    deleteSubstitute: (req: Request, res: Response) => {
-        substituteIngredientService.remove(req.params.ingredientId, req.params.id);
+    deleteSubstitute: async (req: Request, res: Response) => {
+        await substituteIngredientService.remove(req.params.ingredientId, req.params.id);
         res.status(204).send();
     },
 };

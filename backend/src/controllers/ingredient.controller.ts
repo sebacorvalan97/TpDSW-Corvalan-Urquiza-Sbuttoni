@@ -13,29 +13,29 @@ import { ingredientService } from '../services/ingredient.service.js';
 
 export const ingredientController = {
     // GET /api/ingredients → lista todos
-    getAllIngredients: (_req: Request, res: Response) => {
-        res.json(ingredientService.getAll());
+    getAllIngredients: async (_req: Request, res: Response) => {
+        res.json(await ingredientService.getAll());
     },
 
     // GET /api/ingredients/:id → uno solo
-    getIngredientById: (req: Request, res: Response) => {
-        res.json(ingredientService.getById(req.params.id));
+    getIngredientById: async (req: Request, res: Response) => {
+        res.json(await ingredientService.getById(req.params.id));
     },
 
     // POST /api/ingredients → crea. Responde 201 (Created) con el ingrediente nuevo.
-    createIngredient: (req: Request, res: Response) => {
-        const created = ingredientService.create(req.body);
+    createIngredient: async (req: Request, res: Response) => {
+        const created = await ingredientService.create(req.body);
         res.status(201).json(created);
     },
 
     // PUT /api/ingredients/:id → modifica
-    updateIngredient: (req: Request, res: Response) => {
-        res.json(ingredientService.update(req.params.id, req.body));
+    updateIngredient: async (req: Request, res: Response) => {
+        res.json(await ingredientService.update(req.params.id, req.body));
     },
 
     // DELETE /api/ingredients/:id → elimina. Responde 204 (No Content): salió bien, sin cuerpo.
-    deleteIngredient: (req: Request, res: Response) => {
-        ingredientService.remove(req.params.id);
+    deleteIngredient: async (req: Request, res: Response) => {
+        await ingredientService.remove(req.params.id);
         res.status(204).send();
     },
 };

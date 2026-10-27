@@ -17,7 +17,7 @@ import CategoryForm from './CategoryForm';
 import CategoryList from './CategoryList';
 import './CategoryCrud.css';
 
-export default function CategoryCrud() {
+export default function CategoryCrud({ onChanged }: { onChanged?: (categories: CategoriaApi[]) => void }) {
     // ---- ESTADO: cuando cambia, React vuelve a dibujar el componente (reactividad) ----
     const [categories, setCategories] = useState<CategoriaApi[]>([]);
     const [editing, setEditing] = useState<CategoriaApi | null>(null); // null = modo "crear"
@@ -32,7 +32,9 @@ export default function CategoryCrud() {
     useEffect(() => {
         const loadCategories = async () => {
             try {
-                setCategories(await categoryService.getAll());
+                const loaded = await categoryService.getAll();
+                setCategories(loaded);
+                onChanged?.(loaded);
             } catch (err) {
                 setError(getErrorMessage(err));
             } finally {
@@ -55,11 +57,14 @@ export default function CategoryCrud() {
         try {
             if (editing === null) {
                 const created = await categoryService.create(data);
-                setCategories((current) => [...current, created]);            // agregamos al final
+                const next = [...categories, created];
+                setCategories(next);
+                onChanged?.(next);
             } else {
                 const updated = await categoryService.update(editing.idCategory, data);
-                setCategories((current) =>                                    // reemplazamos la editada
-                    current.map((c) => (c.idCategory === updated.idCategory ? updated : c)));
+                const next = categories.map((c) => (c.idCategory === updated.idCategory ? updated : c));
+                setCategories(next);
+                onChanged?.(next);
             }
             setEditing(null);
             setFormVersion((v) => v + 1);   // limpia el formulario
@@ -76,7 +81,9 @@ export default function CategoryCrud() {
         setError(null);
         try {
             await categoryService.remove(category.idCategory);
-            setCategories((current) => current.filter((c) => c.idCategory !== category.idCategory));
+            const next = categories.filter((c) => c.idCategory !== category.idCategory);
+            setCategories(next);
+            onChanged?.(next);
             if (editing?.idCategory === category.idCategory) {   // si justo la estábamos editando
                 setEditing(null);
                 setFormVersion((v) => v + 1);

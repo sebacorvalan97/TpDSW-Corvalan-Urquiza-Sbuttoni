@@ -11,11 +11,12 @@
  */
 import { Router } from 'express';
 import { ingredientController } from '../controllers/ingredient.controller.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 export const ingredientRouter = Router();
 
 ingredientRouter.get('/', ingredientController.getAllIngredients);
-ingredientRouter.post('/', ingredientController.createIngredient);
-ingredientRouter.put('/:id', ingredientController.updateIngredient);
-ingredientRouter.delete('/:id', ingredientController.deleteIngredient);
+ingredientRouter.post('/', requireAdmin, ingredientController.createIngredient);
+ingredientRouter.put('/:id', requireAdmin, ingredientController.updateIngredient);
+ingredientRouter.delete('/:id', requireAdmin, ingredientController.deleteIngredient);
 ingredientRouter.get('/:id', ingredientController.getIngredientById);

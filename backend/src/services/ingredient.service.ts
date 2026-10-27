@@ -60,41 +60,43 @@ function validateInput(body: unknown): IngredientInput {
 }
 
 export const ingredientService = {
-    getAll: (): Ingredient[] => ingredientRepository.getAllIngredients(),
+    getAll: async (): Promise<Ingredient[]> => ingredientRepository.getAllIngredients(),
 
-    getById: (rawId: unknown): Ingredient => {
-        const ingredient = ingredientRepository.getIngredientById(parseId(rawId));
+    getById: async (rawId: unknown): Promise<Ingredient> => {
+        const ingredient = await ingredientRepository.getIngredientById(parseId(rawId));
         if (!ingredient) throw new HttpError(404, 'Ingrediente no encontrado');
         return ingredient;
     },
 
-    create: (body: unknown): Ingredient => {
+    create: async (body: unknown): Promise<Ingredient> => {
         const data = validateInput(body);
         // Regla de negocio: no puede haber dos ingredientes con el mismo nombre.
-        if (ingredientRepository.getIngredientByName(data.nombre)) {
+        if (await ingredientRepository.getIngredientByName(data.nombre)) {
             throw new HttpError(409, 'Ya existe un ingrediente con ese nombre');   // 409 = conflicto
         }
         return ingredientRepository.createIngredient(data);
     },
 
-    update: (rawId: unknown, body: unknown): Ingredient => {
+    update: async (rawId: unknown, body: unknown): Promise<Ingredient> => {
         const id = parseId(rawId);
         const data = validateInput(body);
 
-        if (!ingredientRepository.getIngredientById(id)) {
+        if (!await ingredientRepository.getIngredientById(id)) {
             throw new HttpError(404, 'Ingrediente no encontrado');
         }
         // Puede conservar su propio nombre, pero no copiar el de OTRO ingrediente.
-        const mismoNombre = ingredientRepository.getIngredientByName(data.nombre);
+        const mismoNombre = await ingredientRepository.getIngredientByName(data.nombre);
         if (mismoNombre && mismoNombre.idIngredient !== id) {
             throw new HttpError(409, 'Ya existe un ingrediente con ese nombre');
         }
         // Si no hubo error, el update siempre encuentra el ingrediente; el `as Ingredient` se lo informa a TypeScript.
-        return ingredientRepository.updateIngredient(id, data) as Ingredient;
+        const updated = await ingredientRepository.updateIngredient(id, data);
+        if (!updated) throw new HttpError(404, 'Ingrediente no encontrado');
+        return updated;
     },
 
-    remove: (rawId: unknown): void => {
-        const deleted = ingredientRepository.deleteIngredient(parseId(rawId));
+    remove: async (rawId: unknown): Promise<void> => {
+        const deleted = await ingredientRepository.deleteIngredient(parseId(rawId));
         if (!deleted) throw new HttpError(404, 'Ingrediente no encontrado');
         // TODO (cuando existan Recetas con ingredientes): impedir borrar ingredientes que estén en uso.
     },

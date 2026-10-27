@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import type { 
+import { useState, useMemo, useEffect } from 'react';
+import type {
   Receta, 
   Categoria, 
   Origen, 
@@ -10,16 +10,10 @@ import type {
 } from './types';
 
 import { 
-  INITIAL_CATEGORIAS, 
-  INITIAL_ORIGENES, 
-  INITIAL_DIFICULTADES, 
-  INITIAL_INGREDIENTES, 
-  INITIAL_RECETAS, 
   INITIAL_USUARIOS, 
-  INITIAL_COMENTARIOS 
 } from './data/mockData';
 
-import Navbar from './components/Navbar';
+import Navbar from './components/NavBar';
 import Sidebar from './components/Sidebar';
 import RecipeCard from './components/RecipeCard';
 import RecipeDetailModal from './components/RecipeDetailModal';
@@ -32,21 +26,166 @@ import CategoryCrud from './components/CategoryCrud';
 import IngredientCrud from './components/IngredientCrud';
 import SubstituteIngredientCrud from './components/SubstituteIngredientCrud';
 import RecipeDiscover from './components/RecipeDiscover';
+import RecipeCatalogCrud from './components/RecipeCatalogCrud';
+import AuthPanel, { type AuthRole, type AuthSession } from './components/AuthPanel';
+import { recetaService } from './services/receta.service';
+import { categoryService } from './services/category.service';
+import { ingredientService } from './services/ingredient.service';
+import { recipeCatalogService } from './services/recipe-catalog.service';
+import { userDataService, type CommentApi } from './services/user-data.service';
 
-type AppTab = 'recipes' | 'ranking' | 'create' | 'admin' | 'substitutes' | 'favorites' | 'discover';
+type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
 export default function App() {
-  // Estados globales de la aplicación: recetas y catálogos compartidos entre las pantallas.
-  const [recetas, setRecetas] = useState<Receta[]>(INITIAL_RECETAS);
-  const [categorias, setCategorias] = useState<Categoria[]>(INITIAL_CATEGORIAS);
-  const [origenes, setOrigenes] = useState<Origen[]>(INITIAL_ORIGENES);
-  const [dificultades, setDificultades] = useState<Dificultad[]>(INITIAL_DIFICULTADES);
-  const [ingredientes, setIngredientes] = useState<Ingrediente[]>(INITIAL_INGREDIENTES);
+  // Global App States
+  const [recetas, setRecetas] = useState<Receta[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [origenes, setOrigenes] = useState<Origen[]>([]);
+  const [dificultades, setDificultades] = useState<Dificultad[]>([]);
+  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>(INITIAL_USUARIOS);
-  const [comentarios, setComentarios] = useState<Comentario[]>(INITIAL_COMENTARIOS);
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
 
-  const [currentUser, setCurrentUser] = useState<Usuario>(INITIAL_USUARIOS[0]);
+  const [currentUser, setCurrentUser] = useState<Usuario>(() => {
+    const storedSession = readStoredSession();
+    return storedSession?.role === 'user'
+      ? {
+          id: `usr-${storedSession.id}`,
+          nombre: storedSession.name,
+          avatar: INITIAL_USUARIOS[0].avatar,
+        }
+      : INITIAL_USUARIOS[0];
+  });
+  const [authSession, setAuthSession] = useState<AuthSession | null>(readStoredSession);
+  const [authRole, setAuthRole] = useState<AuthRole>('user');
   const [currentTab, setCurrentTab] = useState<AppTab>('discover');
+  const [operationError, setOperationError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void Promise.all([
+      recetaService.getAllRecetas(),
+      categoryService.getAll(),
+      ingredientService.getAll(),
+      recipeCatalogService.getOrigins(),
+      recipeCatalogService.getDifficulties(),
+    ]).then(([apiRecipes, apiCategories, apiIngredients, apiOrigins, apiDifficulties]) => {
+      if (!isMounted) return;
+      setOperationError('');
+      setRecetas(apiRecipes.map(toUiRecipe));
+      setCategorias(apiCategories.map((category) => ({ id: String(category.idCategory), nombre: category.nombre })));
+      setIngredientes(apiIngredients.map((ingredient) => ({
+        id: String(ingredient.idIngredient),
+        nombre: ingredient.nombre,
+        unidadMedidaDefecto: ingredient.unidadMedidaDefecto,
+        sustitutos: [],
+      })));
+      setOrigenes(apiOrigins.map((origin) => ({ id: String(origin.idOrigin), pais: origin.pais, nombre: origin.nombre, bandera: '' })));
+      setDificultades(apiDifficulties.map((difficulty) => ({ id: String(difficulty.idDifficulty), nivel: difficulty.nivel })));
+    }).catch((error: unknown) => {
+      console.error('No se pudieron cargar las recetas y sus catálogos desde el servidor.', error);
+      if (isMounted) {
+        setOperationError(error instanceof Error ? error.message : 'No se pudieron cargar las recetas y sus catálogos.');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (authSession?.role !== 'user') {
+      setFavoriteRecipeIds([]);
+      return () => { isMounted = false; };
+    }
+    void userDataService.getFavorites().then((ids) => {
+      if (isMounted) setFavoriteRecipeIds(ids);
+    }).catch((cause: unknown) => {
+      if (isMounted) setOperationError(cause instanceof Error ? cause.message : 'No se pudieron cargar los favoritos.');
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [authSession]);
+
+  useEffect(() => {
+    if (!favoriteRecipeIds.length && !recetas.some((recipe) => recipe.esFavorito)) return;
+    const favoriteIds = new Set(favoriteRecipeIds.map(String));
+    setRecetas((current) => {
+      let changed = false;
+      const updated = current.map((recipe) => {
+        const isFavorite = favoriteIds.has(recipe.id.replace(/^rec-/, ''));
+        if (recipe.esFavorito !== isFavorite) changed = true;
+        return isFavorite === recipe.esFavorito ? recipe : { ...recipe, esFavorito: isFavorite };
+      });
+      return changed ? updated : current;
+    });
+  }, [favoriteRecipeIds, recetas]);
+
+  useEffect(() => {
+    if (!authSession) return;
+    const resource = authSession.role === 'admin' ? 'admins' : 'users';
+    void fetch(`http://localhost:8080/api/${resource}/me`, {
+      headers: { Authorization: `Bearer ${authSession.token}` },
+    }).then(async (response) => {
+      if (response.status === 401 || response.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY);
+        setAuthSession(null);
+        setCurrentUser(INITIAL_USUARIOS[0]);
+        return;
+      }
+      if (response.ok && authSession.role === 'user') {
+        const user = await response.json() as { idUser: number; name: string };
+        setCurrentUser({
+          id: `usr-${user.idUser}`,
+          nombre: user.name,
+          avatar: INITIAL_USUARIOS[0].avatar,
+        });
+      }
+    }).catch((error: unknown) => {
+      console.error('No se pudo validar la sesión con el servidor. Se conserva temporalmente la sesión local.', error);
+    });
+  }, [authSession]);
+
+  const openAuth = (role: AuthRole = 'user') => {
+    setAuthRole(role);
+    setCurrentTab('auth');
+  };
+
+  const handleAuthSuccess = (session: AuthSession) => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    setAuthSession(session);
+    setRecetas((previous) => previous.map((recipe) => ({ ...recipe, esFavorito: false })));
+    if (session.role === 'user') {
+      setCurrentUser({
+        id: `usr-${session.id}`,
+        nombre: session.name,
+        avatar: INITIAL_USUARIOS[0].avatar,
+      });
+      setCurrentTab('discover');
+    } else {
+      setCurrentTab('admin');
+    }
+  };
+
+  const handleLogout = () => {
+    if (authSession) {
+      const resource = authSession.role === 'admin' ? 'admins' : 'users';
+      void fetch(`http://localhost:8080/api/${resource}/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authSession.token}` },
+      }).catch((error: unknown) => console.error('No se pudo invalidar la sesión en el servidor.', error));
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    setAuthSession(null);
+    setCurrentUser(INITIAL_USUARIOS[0]);
+    setRecetas((previous) => previous.map((recipe) => ({ ...recipe, esFavorito: false })));
+    setCurrentTab('discover');
+  };
 
   // Criterios usados para filtrar las recetas de las vistas que ofrecen búsqueda.
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -55,11 +194,57 @@ export default function App() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [selectedMaxTime, setSelectedMaxTime] = useState<number | 'all'>('all');
 
-  // Controla la receta seleccionada y la apertura de los modales y del asistente de creación.
+  // Modals State
   const [selectedRecipe, setSelectedRecipe] = useState<Receta | null>(null);
   const [isCookingDirect, setIsCookingDirect] = useState<boolean>(false);
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
   const [editingRecipe, setEditingRecipe] = useState<Receta | null>(null);
+
+  useEffect(() => {
+    if (!selectedRecipe) {
+      setComentarios([]);
+      return;
+    }
+    let isMounted = true;
+    const recipeId = Number(selectedRecipe.id.replace(/^rec-/, ''));
+    void userDataService.getComments(recipeId).then((apiComments) => {
+      if (!isMounted) return;
+      setComentarios(apiComments.map((comment) => toUiComment(comment, recipeId)));
+    }).catch((cause: unknown) => {
+      if (isMounted) setOperationError(cause instanceof Error ? cause.message : 'No se pudieron cargar los comentarios.');
+    });
+    return () => { isMounted = false; };
+  }, [selectedRecipe?.id, authSession]);
+
+  const navigateTo = (tab: AppTab) => {
+    if (tab === 'create') {
+      if (!authSession) {
+        openAuth('user');
+        return;
+      }
+      setEditingRecipe(null);
+      setIsWizardOpen(true);
+      return;
+    }
+    if (tab === 'admin' && authSession?.role !== 'admin') {
+      openAuth('admin');
+      return;
+    }
+    if (tab === 'favorites' && !authSession) {
+      openAuth('user');
+      return;
+    }
+    setCurrentTab(tab);
+  };
+
+  const createRecipe = () => {
+    if (!authSession) {
+      openAuth('user');
+      return;
+    }
+    setEditingRecipe(null);
+    setIsWizardOpen(true);
+  };
 
   // Categorías destacadas con etiquetas e iconos para los accesos rápidos del catálogo.
   const quickCategories = [
@@ -71,138 +256,139 @@ export default function App() {
     { id: 'cat-asiatica', label: 'Asiático', icon: 'ramen_dining' }
   ];
 
-  // Alterna el estado de favorito de una receta y actualiza la lista global.
-  const handleToggleFavorite = (recetaId: string) => {
-    setRecetas((prev) =>
-      prev.map((r) =>
-        r.id === recetaId ? { ...r, esFavorito: !r.esFavorito } : r
-      )
-    );
+  // Toggle favorite
+  const handleToggleFavorite = async (recetaId: string) => {
+    if (authSession?.role !== 'user') {
+      openAuth('user');
+      return;
+    }
+    try {
+      setOperationError('');
+      const result = await userDataService.toggleFavorite(Number(recetaId.replace(/^rec-/, '')));
+      const recipeId = Number(recetaId.replace(/^rec-/, ''));
+      setFavoriteRecipeIds((ids) => result.isFavorite
+        ? [...new Set([...ids, recipeId])]
+        : ids.filter((id) => id !== recipeId));
+    } catch (cause: unknown) {
+      setOperationError(cause instanceof Error ? cause.message : 'No se pudo actualizar el favorito.');
+    }
   };
 
-  // Registra un comentario y recalcula la calificación promedio de la receta correspondiente.
-  const handleAddComment = (recetaId: string, rating: number, text: string) => {
-    const newComment: Comentario = {
-      id: 'com-' + Date.now(),
-      recetaId,
-      usuarioId: currentUser.id,
-      nombreUsuario: currentUser.nombre,
-      avatarUsuario: currentUser.avatar,
-      calificacion: rating,
-      texto: text,
-      fecha: new Date().toISOString().split('T')[0],
-      likes: 0
+  // Add Comment & Rating
+  const handleAddComment = async (recetaId: string, rating: number, text: string) => {
+    if (!authSession || authSession.role !== 'user') {
+      openAuth('user');
+      return;
+    }
+    try {
+      setOperationError('');
+      const recipeId = Number(recetaId.replace(/^rec-/, ''));
+      await userDataService.createComment(recipeId, rating, text);
+      const apiComments = await userDataService.getComments(recipeId);
+      const loadedComments = apiComments.map((comment) => toUiComment(comment, recipeId));
+      setComentarios(loadedComments);
+      const average = loadedComments.length
+        ? loadedComments.reduce((sum, comment) => sum + comment.calificacion, 0) / loadedComments.length
+        : 0;
+      setRecetas((previous) => previous.map((recipe) => recipe.id === recetaId
+        ? { ...recipe, calificacionPromedio: average, totalCalificaciones: loadedComments.length }
+        : recipe));
+      setSelectedRecipe((previous) => previous?.id === recetaId
+        ? { ...previous, calificacionPromedio: average, totalCalificaciones: loadedComments.length }
+        : previous);
+    } catch (cause: unknown) {
+      setOperationError(cause instanceof Error ? cause.message : 'No se pudo guardar el comentario.');
+      throw cause;
+    }
+  };
+
+  const handleLikeComment = async (comentarioId: string) => {
+    if (!authSession || authSession.role !== 'user') {
+      openAuth('user');
+      return;
+    }
+    try {
+      const updated = await userDataService.toggleCommentLike(Number(comentarioId));
+      setComentarios((previous) => previous.map((comment) => comment.id === comentarioId
+        ? { ...comment, likes: updated.likes, likedByUser: updated.likedByUser }
+        : comment));
+    } catch (cause: unknown) {
+      setOperationError(cause instanceof Error ? cause.message : 'No se pudo registrar la reacción.');
+    }
+  };
+
+  // Save Recipe (Create or Update)
+  const handleSaveRecipe = async (recipeData: Partial<Receta>) => {
+    if (!authSession) {
+      openAuth('user');
+      return;
+    }
+    if (!recipeData.plato) throw new Error('Faltan los datos principales de la receta.');
+    setOperationError('');
+    const requestData = {
+      nombre: recipeData.plato.nombre,
+      descripcion: recipeData.plato.descripcion,
+      imagenUrl: recipeData.plato.imagenUrl,
+      duracion: (recipeData.tiempoPreparacionMin ?? 0) + (recipeData.tiempoCoccionMin ?? 0),
+      idCategory: Number(recipeData.plato.categoriaId),
+      idDifficulty: Number(recipeData.plato.dificultadId),
+      idOrigin: Number(recipeData.plato.origenId),
+      ingredients: (recipeData.ingredientes ?? []).map((ingredient) => ({
+        idIngredient: Number(ingredient.id),
+        cantidad: ingredient.cantidad ?? 1,
+        unidad: ingredient.unidad ?? ingredient.unidadMedidaDefecto,
+      })),
+      steps: recipeData.pasos ?? [],
     };
-
-    const updatedComments = [newComment, ...comentarios];
-    setComentarios(updatedComments);
-
-    const recipeComments = updatedComments.filter((c) => c.recetaId === recetaId);
-    const avg = recipeComments.reduce((acc, c) => acc + c.calificacion, 0) / recipeComments.length;
-
-    setRecetas((prev) =>
-      prev.map((r) =>
-        r.id === recetaId
-          ? {
-              ...r,
-              calificacionPromedio: avg,
-              totalCalificaciones: recipeComments.length
-            }
-          : r
-      )
-    );
-
-    if (selectedRecipe && selectedRecipe.id === recetaId) {
-      setSelectedRecipe((prev) => prev ? {
-        ...prev,
-        calificacionPromedio: avg,
-        totalCalificaciones: recipeComments.length
-      } : null);
-    }
-  };
-
-  // Incrementa los "me gusta" del comentario seleccionado.
-  const handleLikeComment = (comentarioId: string) => {
-    setComentarios((prev) =>
-      prev.map((c) =>
-        c.id === comentarioId ? { ...c, likes: c.likes + 1 } : c
-      )
-    );
-  };
-
-  // Crea una receta nueva o fusiona los cambios con la receta que se está editando.
-  const handleSaveRecipe = (recipeData: Partial<Receta>) => {
-    if (editingRecipe) {
-      setRecetas((prev) =>
-        prev.map((r) => (r.id === editingRecipe.id ? { ...r, ...recipeData } as Receta : r))
-      );
-      setEditingRecipe(null);
-    } else {
-      const newRec: Receta = {
-        id: 'rec-' + Date.now(),
-        platoId: recipeData.plato?.id || 'plt-' + Date.now(),
-        plato: recipeData.plato!,
-        tiempoPreparacionMin: recipeData.tiempoPreparacionMin || 20,
-        tiempoCoccionMin: recipeData.tiempoCoccionMin || 25,
-        porcionesBase: recipeData.porcionesBase || 4,
-        ingredientes: recipeData.ingredientes || [],
-        pasos: recipeData.pasos || [],
-        calificacionPromedio: 5.0,
-        totalCalificaciones: 1,
-        creadorUsuarioId: currentUser.id,
-        creadorNombre: currentUser.nombre,
-        esFavorito: false
-      };
-      setRecetas([newRec, ...recetas]);
-    }
+    const recipeId = Number((editingRecipe?.id ?? recipeData.id ?? '').replace(/^rec-/, ''));
+    const savedRecipe = editingRecipe && Number.isInteger(recipeId)
+      ? await recetaService.updateComplete(recipeId, requestData)
+      : await recetaService.createComplete(requestData);
+    const updatedRecipe = toUiRecipe(savedRecipe);
+    setRecetas((previous) => editingRecipe
+      ? previous.map((recipe) => recipe.id === editingRecipe.id ? { ...updatedRecipe, esFavorito: recipe.esFavorito } : recipe)
+      : [updatedRecipe, ...previous]);
+    setEditingRecipe(null);
     setIsWizardOpen(false);
   };
 
-  // Quita de la lista global la receta identificada.
-  const handleDeleteRecipe = (recetaId: string) => {
-    setRecetas((prev) => prev.filter((r) => r.id !== recetaId));
+  const handleDeleteRecipe = async (recetaId: string) => {
+    if (!authSession) {
+      openAuth('user');
+      return;
+    }
+    const recipe = recetas.find((item) => item.id === recetaId);
+    if (authSession.role !== 'admin' && recipe?.creadorUsuarioId !== currentUser.id) return;
+    try {
+      setOperationError('');
+      await recetaService.deleteReceta(Number(recetaId.replace(/^rec-/, '')));
+      setRecetas((previous) => previous.filter((item) => item.id !== recetaId));
+      setSelectedRecipe(null);
+    } catch (error: unknown) {
+      setOperationError(error instanceof Error ? error.message : 'No se pudo eliminar la receta.');
+    }
   };
 
-  // Añade un sustituto a un ingrediente del catálogo sin modificar los demás ingredientes.
-  const handleAddSubstitute = (
-    ingredienteId: string,
-    nombreSustituto: string,
-    proporcion: string,
-    notas: string
-  ) => {
-    setIngredientes((prev) =>
-      prev.map((ing) => {
-        if (ing.id === ingredienteId) {
-          const newSub = {
-            id: 'sub-' + Date.now(),
-            ingredientePrincipalId: ingredienteId,
-            nombreSustituto,
-            proporcion,
-            notas
-          };
-          return {
-            ...ing,
-            sustitutos: [...(ing.sustitutos || []), newSub]
-          };
-        }
-        return ing;
-      })
-    );
-  };
-
-  // Crea un ingrediente desde el asistente, lo agrega al catálogo y lo devuelve al formulario.
-  const handleCreateIngredientFromWizard = (nombre: string, unidad: string) => {
-    const newIng: Ingrediente = {
-      id: 'ing-' + Date.now(),
+  const handleCreateIngredientFromWizard = async (nombre: string, unidad: string): Promise<Ingrediente> => {
+    if (authSession?.role !== 'admin') {
+      throw new Error('Ese ingrediente no está en el catálogo. Pídele a un administrador que lo agregue.');
+    }
+    const created = await ingredientService.create({
       nombre,
+      descripcion: '',
       unidadMedidaDefecto: unidad,
-      sustitutos: []
+    });
+    const newIngredient: Ingrediente = {
+      id: String(created.idIngredient),
+      nombre: created.nombre,
+      unidadMedidaDefecto: created.unidadMedidaDefecto,
+      sustitutos: [],
     };
-    setIngredientes((prev) => [...prev, newIng]);
-    return newIng;
+    setIngredientes((previous) => [...previous, newIngredient]);
+    return newIngredient;
   };
 
-  // Filtra recetas por favoritos, categoría, origen, dificultad, tiempo y texto de búsqueda.
+  // Filtered Recipes Calculation
   const filteredRecetas = useMemo(() => {
     return recetas.filter((r) => {
       if (currentTab === 'favorites' && !r.esFavorito) return false;
@@ -252,10 +438,8 @@ export default function App() {
     origenes
   ]);
 
-  // Calcula el contador de recetas favoritas que se muestra en la navegación.
   const favoritesCount = recetas.filter((r) => r.esFavorito).length;
 
-  // Restablece todos los filtros y el texto de búsqueda a sus valores iniciales.
   const resetFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
@@ -264,7 +448,7 @@ export default function App() {
     setSelectedMaxTime('all');
   };
 
-  // Selecciona la primera receta de la lista para mostrarla como receta destacada.
+  // Featured Recipe for the top banner (pick top rated or first)
   const featuredRecipe = recetas[0];
 
   // Prepara el asistente con los catálogos, usuario y acciones que necesita para guardar o navegar.
@@ -295,69 +479,72 @@ export default function App() {
     return recipeWizard;
   }
 
+  if (currentTab === 'auth') {
+    return (
+      <div className="min-h-screen bg-[#fbf9f8] px-4 py-12">
+        <AuthPanel
+          role={authRole}
+          onRoleChange={setAuthRole}
+          onSuccess={handleAuthSuccess}
+          onCancel={() => setCurrentTab('discover')}
+        />
+      </div>
+    );
+  }
+
   // La vista Descubrir tiene su propio diseño; su acción de crear abre el asistente global.
   if (currentTab === ('discover' as AppTab)) {
     return (
       <RecipeDiscover
         recetas={recetas}
-        onAddRecipe={() => {
-          setEditingRecipe(null);
-          setIsWizardOpen(true);
-        }}
+        onAddRecipe={createRecipe}
+        onShowRecipes={() => navigateTo('recipes')}
+        onCreateUser={() => setCurrentTab('register')}
+        onAdmin={() => navigateTo('admin')}
+        onSignIn={() => openAuth('user')}
+        onSignOut={handleLogout}
+        authSession={authSession}
+        errorMessage={operationError}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-[#fbf9f8] text-[#1b1c1c] flex flex-col font-sans">
-      {/* Navegación principal y búsqueda global de la aplicación. */}
+      {/* Top Navigation Bar */}
       <Navbar
         currentTab={currentTab}
-        setCurrentTab={(tab) => {
-          if (tab === 'create') {
-            setEditingRecipe(null);
-            setIsWizardOpen(true);
-          } else {
-            setCurrentTab(tab);
-          }
-        }}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        currentUser={currentUser}
-        setCurrentUser={setCurrentUser}
-        allUsers={usuarios}
+        setCurrentTab={(tab) => navigateTo(tab)}
         favoritesCount={favoritesCount}
+        authSession={authSession}
+        onSignIn={() => openAuth('user')}
+        onSignOut={handleLogout}
       />
 
-      {/* Distribuye la pantalla en menú lateral y área principal de contenido. */}
-      <div className="flex max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-12 py-6 gap-8 flex-1">
+      {/* Main Container with Sidebar + Canvas */}
+      <div className="flex max-w-7xl mx-auto w-full px-4 md:px-8 gap-8 flex-1">
         
-        {/* Navegación lateral de escritorio y accesos a secciones o etiquetas. */}
-        <Sidebar
-          currentTab={currentTab}
-          setCurrentTab={(tab) => {
-            if (tab === 'create') {
-              setEditingRecipe(null);
-              setIsWizardOpen(true);
-            } else {
-              setCurrentTab(tab);
-            }
-          }}
-          currentUser={currentUser}
-          favoritesCount={favoritesCount}
-          onSelectTag={(tag) => {
-            setCurrentTab('recipes');
-            setSearchQuery(tag);
-          }}
-        />
+        {/* Left Sidebar (Desktop) */}
+        {currentTab !== 'register' && (
+          <Sidebar
+            currentTab={currentTab}
+            setCurrentTab={(tab) => navigateTo(tab)}
+            authSession={authSession}
+            onSelectTag={(tag) => {
+              setCurrentTab('recipes');
+              setSearchQuery(tag);
+            }}
+          />
+        )}
 
-        {/* Contenedor central que muestra la vista seleccionada por currentTab. */}
-        <main className="flex-1 min-w-0 space-y-8">
+        {/* Center / Main Content Canvas */}
+        <main className="flex-1 min-w-0 space-y-8 py-6">
+          {operationError && <p className="rounded-lg bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]" role="alert">{operationError}</p>}
           
-          {/* Vistas de recetas y favoritos: incluyen destacados, categorías, filtros y resultados. */}
+          {/* VIEW: DISCOVER / RECIPES / FAVORITES */}
           {(currentTab === 'recipes' || currentTab === 'favorites') && (
             <>
-              {/* Banner destacado con acceso directo a iniciar la preparación. */}
+              {/* FEATURED HERO BANNER (matching guide) */}
               {featuredRecipe && currentTab === 'recipes' && !searchQuery && selectedCategory === 'all' && (
                 <section className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden shadow-lg group border border-[#c2c9bb]/30">
                   <div
@@ -387,7 +574,7 @@ export default function App() {
                     <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
                       <div className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">schedule</span>
-                        <span>{featuredRecipe.tiempoPreparacionMin + featuredRecipe.tiempoCoccionMin} min</span>
+                        <span>{featuredRecipe.tiempoPreparacionMin + featuredRecipe.tiempoCoccionMin} Mins</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">trending_up</span>
@@ -409,7 +596,7 @@ export default function App() {
                 </section>
               )}
 
-              {/* Accesos para filtrar el listado por categorías comunes. */}
+              {/* QUICK CATEGORIES (matching guide) */}
               <section className="space-y-3">
                 <div className="flex justify-between items-end">
                   <h2 className="font-serif-display text-xl md:text-2xl font-bold text-[#154212]">
@@ -454,7 +641,7 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Búsqueda y controles de filtrado por categoría, dificultad, origen y tiempo. */}
+              {/* SEARCH & FILTERS SECTION */}
               <section className="bg-white p-4 rounded-2xl border border-[#c2c9bb]/60 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#72796e] text-lg pointer-events-none">
@@ -469,9 +656,9 @@ export default function App() {
                   />
                 </div>
 
-                {/* Controles individuales de filtro y botón para limpiar la selección. */}
+                {/* Filter Pills */}
                 <div className="flex flex-wrap items-center gap-2.5">
-                  {/* Filtra por categoría seleccionada. */}
+                  {/* Category select */}
                   <div className="relative">
                     <select
                       value={selectedCategory}
@@ -485,7 +672,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Filtra por nivel de dificultad. */}
+                  {/* Difficulty select */}
                   <div className="relative">
                     <select
                       value={selectedDifficulty}
@@ -499,7 +686,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Filtra por país de origen. */}
+                  {/* Origin select */}
                   <div className="relative">
                     <select
                       value={selectedOrigin}
@@ -513,7 +700,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Limita los resultados por duración total de preparación y cocción. */}
+                  {/* Max Time select */}
                   <div className="relative">
                     <select
                       value={selectedMaxTime}
@@ -542,7 +729,7 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Resultados: muestra tarjetas para cada coincidencia o un estado sin resultados. */}
+              {/* RECIPES RESULTS GRID */}
               <section className="space-y-4">
                 <div className="flex justify-between items-end">
                   <div>
@@ -599,7 +786,7 @@ export default function App() {
             </>
           )}
 
-          {/* Vista del ranking comunitario de recetas mejor valoradas. */}
+          {/* VIEW: COMMUNITY RANKING */}
           {currentTab === 'ranking' && (
             <CommunityRanking
               recetas={recetas}
@@ -612,20 +799,34 @@ export default function App() {
             />
           )}
 
-          {/* Vista del catálogo de ingredientes y sus alternativas o sustitutos. */}
+          {/* VIEW: SUBSTITUTES / DESPENSA */}
           {currentTab === 'substitutes' && (
             <SubstitutesDirectory
               ingredientes={ingredientes}
-              onAddSubstitute={handleAddSubstitute}
+              authSession={authSession!}
             />
           )}
 
-          {/* Herramientas administrativas para gestionar recetas y catálogos. */}
-          {currentTab === 'admin' && (
+          {currentTab === 'register' && (
+            <UserCrud onRegistered={handleAuthSuccess} />
+          )}
+
+          {/* Herramientas de catálogo reservadas a administradores autenticados. */}
+          {currentTab === 'admin' && authSession?.role === 'admin' && (
             <>
-              <UserCrud />
-              <CategoryCrud />
-              <IngredientCrud />
+              <RecipeCatalogCrud
+                origins={origenes}
+                difficulties={dificultades}
+                onOriginsChanged={setOrigenes}
+                onDifficultiesChanged={setDificultades}
+              />
+              <CategoryCrud onChanged={(items) => setCategorias(items.map((item) => ({ id: String(item.idCategory), nombre: item.nombre })))} />
+              <IngredientCrud onChanged={(items) => setIngredientes(items.map((item) => ({
+                id: String(item.idIngredient),
+                nombre: item.nombre,
+                unidadMedidaDefecto: item.unidadMedidaDefecto,
+                sustitutos: [],
+              })))} />
               <SubstituteIngredientCrud />
               <AdminCrudPanel
               recetas={recetas}
@@ -657,32 +858,29 @@ export default function App() {
         </main>
       </div>
 
-      {/* Botón flotante móvil que abre el asistente para crear una receta. */}
+      {/* Floating Action Button for Mobile Add Recipe */}
       <button
-        onClick={() => {
-          setEditingRecipe(null);
-          setIsWizardOpen(true);
-        }}
+        onClick={createRecipe}
         className="lg:hidden fixed bottom-20 right-6 bg-[#154212] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all z-40"
         title="Crear nueva receta"
       >
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
 
-      {/* Barra de navegación móvil para cambiar de sección o abrir la creación. */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-xl border-t border-[#e4e2e1]">
         <button
-          onClick={() => setCurrentTab('favorites')}
+          onClick={() => navigateTo(authSession ? 'favorites' : 'recipes')}
           className={`flex flex-col items-center justify-center ${
-            currentTab === 'favorites' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
+            currentTab === 'favorites' || (!authSession && currentTab === 'recipes') ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
           }`}
         >
           <span className="material-symbols-outlined">menu_book</span>
-          <span className="text-[10px]">Mis Recetas</span>
+          <span className="text-[10px]">{authSession ? 'Mis Recetas' : 'Recetas'}</span>
         </button>
 
         <button
-          onClick={() => setCurrentTab('discover')}
+          onClick={() => navigateTo('discover')}
           className={`flex flex-col items-center justify-center px-3 py-1 rounded-full ${
             currentTab === 'discover' ? 'bg-[#2d5a27] text-[#ffffff] font-bold' : 'text-[#605e5b]'
           }`}
@@ -692,10 +890,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => {
-            setEditingRecipe(null);
-            setIsWizardOpen(true);
-          }}
+          onClick={createRecipe}
           className="flex flex-col items-center justify-center text-[#154212] font-bold"
         >
           <span className="material-symbols-outlined text-2xl">add_circle</span>
@@ -703,7 +898,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setCurrentTab('ranking')}
+          onClick={() => navigateTo('ranking')}
           className={`flex flex-col items-center justify-center ${
             currentTab === 'ranking' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
           }`}
@@ -712,18 +907,20 @@ export default function App() {
           <span className="text-[10px]">Ranking</span>
         </button>
 
-        <button
-          onClick={() => setCurrentTab('substitutes')}
-          className={`flex flex-col items-center justify-center ${
-            currentTab === 'substitutes' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
-          }`}
-        >
-          <span className="material-symbols-outlined">kitchen</span>
-          <span className="text-[10px]">Despensa</span>
-        </button>
+        {authSession && (
+          <button
+            onClick={() => navigateTo('substitutes')}
+            className={`flex flex-col items-center justify-center ${
+              currentTab === 'substitutes' ? 'text-[#154212] font-bold' : 'text-[#605e5b]'
+            }`}
+          >
+            <span className="material-symbols-outlined">kitchen</span>
+            <span className="text-[10px]">Despensa</span>
+          </button>
+        )}
       </nav>
 
-      {/* Detalle de receta: permite consultar, valorar, comentar y entrar al modo de cocina. */}
+      {/* MODAL: RECIPE DETAIL (Bento Layout with Cooking Mode) */}
       {selectedRecipe && (
         <RecipeDetailModal
           receta={selectedRecipe}
@@ -738,19 +935,45 @@ export default function App() {
           onAddComment={handleAddComment}
           onLikeComment={handleLikeComment}
           onEditRecipe={(r) => {
+            if (!authSession || (authSession.role !== 'admin' && r.creadorUsuarioId !== currentUser.id)) {
+              openAuth(authSession ? 'admin' : 'user');
+              return;
+            }
             setSelectedRecipe(null);
             setEditingRecipe(r);
             setIsWizardOpen(true);
           }}
           onDeleteRecipe={handleDeleteRecipe}
           initialCookingMode={isCookingDirect}
+          isFavorite={favoriteRecipeIds.includes(Number(selectedRecipe.id.replace(/^rec-/, '')))}
+          errorMessage={operationError}
         />
       )}
 
-      {/* Punto de montaje del asistente de recetas cuando la vista completa está abierta. */}
-      {recipeWizard}
+      {/* MODAL: RECIPE WIZARD (Create / Edit Multi-Step Form) */}
+      {isWizardOpen && (
+        <RecipeWizardModal
+          initialRecipe={editingRecipe}
+          categorias={categorias}
+          origenes={origenes}
+          dificultades={dificultades}
+          ingredientesCatalogo={ingredientes}
+          currentUser={currentUser}
+          onClose={() => {
+            setIsWizardOpen(false);
+            setEditingRecipe(null);
+          }}
+          onNavigateDiscover={() => {
+            setIsWizardOpen(false);
+            setEditingRecipe(null);
+            setCurrentTab('discover');
+          }}
+          onSaveRecipe={handleSaveRecipe}
+          onCreateIngredient={handleCreateIngredientFromWizard}
+        />
+      )}
 
-      {/* Pie de página general de la aplicación. */}
+      {/* Footer */}
       <footer className="mt-auto bg-[#154212] text-white/80 text-xs py-8 border-t border-[#23501e]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex flex-wrap items-center justify-between gap-4">
           <div>

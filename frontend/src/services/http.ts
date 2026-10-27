@@ -11,6 +11,22 @@ export const API_BASE = 'http://localhost:8080/api';
 // Cabecera que le avisa al backend que el cuerpo de la petición viene en formato JSON.
 export const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
+export const authHeaders = (headers?: HeadersInit): Headers => {
+    const result = new Headers(headers);
+    const stored = sessionStorage.getItem('bodegon-session');
+    if (stored) {
+        try {
+            const session = JSON.parse(stored) as { token?: unknown };
+            if (typeof session.token === 'string') {
+                result.set('Authorization', `Bearer ${session.token}`);
+            }
+        } catch (error: unknown) {
+            console.error('No se pudo leer la sesión para autenticar la solicitud.', error);
+        }
+    }
+    return result;
+};
+
 /**
  * Función genérica que hace la petición y traduce los errores a mensajes legibles.
  * `<T>` es un "tipo genérico": indica qué forma tiene el dato que esperamos recibir.
@@ -18,7 +34,10 @@ export const JSON_HEADERS = { 'Content-Type': 'application/json' };
 export async function request<T>(url: string, options?: RequestInit): Promise<T> {
     let response: Response;
     try {
-        response = await fetch(url, options);
+        response = await fetch(url, {
+            ...options,
+            headers: authHeaders(options?.headers),
+        });
     } catch {
         // fetch falla (no responde) cuando el backend está apagado o hay problemas de red.
         throw new Error('No se pudo conectar con el servidor. Verificá que el backend esté encendido.');
