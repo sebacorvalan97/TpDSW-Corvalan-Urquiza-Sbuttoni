@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: #fbf9f8;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f3f2;
+  --color-surface-container: #f0eded;
+  --color-surface-container-highest: #e4e2e1;
+  --color-primary: #154212;
+  --color-primary-container: #bcf0ae;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #002201;
+  --color-secondary: #605e5b;
+  --color-tertiary: #6d4820;
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #605e5b;
+  --color-outline: #72796e;
+  --color-outline-variant: #c2c9bb;
+  --font-body-md: 'Inter', system-ui, sans-serif;
+  --font-display-lg: 'Playfair Display', Georgia, serif;
+  --font-headline-md: 'Playfair Display', Georgia, serif;
+  --font-label-md: 'Inter', system-ui, sans-serif;
+  --font-label-sm: 'Inter', system-ui, sans-serif;
+  --text-body-lg: 1rem;
+  --text-headline-md: 1.25rem;
+  --text-headline-md--line-height: 1.35;
+}
+
 /* ==========================================================================
    EL BODEGÓN DIGITAL - CSS DESIGN SYSTEM & STYLESHEET
    Trabajo Práctico DSW • Corvalan, Sbuttoni, Urquiza

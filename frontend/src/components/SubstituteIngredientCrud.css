@@ -1,0 +1,56 @@
+/* Estilos del CRUD de Ingredientes Sustitutos — MOBILE-FIRST:
+   lo de arriba es el diseño para celular (SM); los @media van sumando cambios
+   para pantallas más grandes (MD ≥ 640px, LG ≥ 1024px). */
+
+.sub-crud { margin-top: 1.5rem; padding: 1rem; background: #fff; border: 1px solid #c2c9bb; border-radius: 1rem; }
+.sub-crud__title { margin: 0 0 1rem; color: #154212; font-size: 1.5rem; font-weight: 700; }
+
+/* Selector de ingrediente principal */
+.sub-selector { margin-bottom: 1rem; padding: 1rem; background: #fbf9f8; border: 1px solid #c2c9bb; border-radius: .75rem; }
+.sub-selector__info { margin-top: .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-size: .85rem; color: #42493e; }
+.sub-selector__badge { font-weight: 700; color: #154212; background: #bcf0ae; padding: .15rem .6rem; border-radius: 999px; }
+
+/* Formulario */
+.sub-form { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; background: #fbf9f8; border-radius: .75rem; margin-bottom: 1rem; }
+.sub-form__title { margin: 0; color: #154212; font-size: 1.05rem; font-weight: 700; }
+.sub-field { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #42493e; }
+.sub-field input, .sub-field select, .sub-field textarea, .sub-search {
+  padding: .65rem .8rem; border: 1px solid #c2c9bb; border-radius: .5rem; font: inherit; width: 100%; box-sizing: border-box; background: #fff;
+}
+.sub-form__actions { display: flex; flex-direction: column; gap: .5rem; }
+
+/* Botones */
+.sub-btn { padding: .65rem .9rem; border: 0; border-radius: .5rem; color: #fff; font-weight: 700; cursor: pointer; transition: opacity .15s ease-in-out; }
+.sub-btn:disabled { opacity: .6; cursor: not-allowed; }
+.sub-btn--primary { background: #154212; }
+.sub-btn--secondary { background: #72796e; }
+.sub-btn--edit { background: #a4661e; }
+.sub-btn--delete { background: #a83232; }
+
+/* Mensajes */
+.sub-error { margin: 1rem 0 0; padding: .75rem 1rem; background: #fdecec; color: #8a1f1f; border-radius: .5rem; }
+.sub-empty { text-align: center; color: #72796e; padding: 1.5rem 0; }
+.sub-search { margin: 1rem 0; }
+
+/* Tabla de sustitutos */
+.sub-table-container { width: 100%; overflow-x: auto; border: 1px solid #e4e2e1; border-radius: .75rem; background: #fff; }
+.sub-table { width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
+.sub-table th, .sub-table td { padding: .75rem 1rem; border-bottom: 1px solid #e4e2e1; vertical-align: middle; }
+.sub-table th { background: #154212; color: #fff; font-weight: 700; white-space: nowrap; }
+.sub-table tbody tr:hover { background: #fbf9f8; }
+.sub-table__name { font-weight: 700; color: #154212; }
+.sub-table__notes { color: #5b6257; font-size: .85rem; max-width: 320px; }
+.sub-badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; background: #e8f1e3; color: #154212; font-size: .8rem; font-weight: 600; }
+.sub-table__actions { display: flex; gap: .4rem; }
+.sub-table__actions .sub-btn { padding: .4rem .65rem; font-size: .85rem; }
+
+/* MD (tablet) */
+@media (min-width: 640px) {
+  .sub-crud { padding: 1.5rem; }
+  .sub-form__actions { flex-direction: row; }
+}
+
+/* LG (escritorio) */
+@media (min-width: 1024px) {
+  .sub-table th, .sub-table td { padding: .85rem 1.25rem; }
+}

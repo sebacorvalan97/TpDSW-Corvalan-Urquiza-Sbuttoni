@@ -5,6 +5,7 @@ import { userRouter } from './routes/user.rout.js';
 import { categoryRouter} from './routes/category.rout.js';
 import { recipeRouter } from './routes/recipe.rout.js';
 import { ingredientRouter} from './routes/ingredient.rout.js'
+import { substituteIngredientRouter } from './routes/substitute-ingredient.rout.js';
 import { errorHandler } from './middlewares/error-handler.js';
 
 const app = express();
@@ -18,6 +19,7 @@ app.use('/api/users', userRouter);
 app.use('/api/categories', categoryRouter); 
 app.use('/api/recipes', recipeRouter);
 app.use('/api/ingredients', ingredientRouter);
+app.use('/api/ingredients/:ingredientId/substitutes', substituteIngredientRouter);
 
 // El manejador de errores va SIEMPRE después de las rutas: atrapa lo que ellas lancen.
 app.use(errorHandler);
