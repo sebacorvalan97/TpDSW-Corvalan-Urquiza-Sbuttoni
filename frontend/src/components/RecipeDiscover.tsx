@@ -9,6 +9,10 @@ interface Props {
   dificultades?: Dificultad[];
   onSelectRecipe: (recipe: Receta) => void;
   onAddRecipe?: () => void;
+  onShowRecipes?: () => void;
+  onSearch?: (query: string) => void;
+  onToggleFavorite?: (id: string) => void;
+  onStartCooking?: (recipe: Receta) => void;
 }
 
 const getCategoryIcon = (nombre: string): string => {
@@ -30,6 +34,9 @@ export default function RecipeDiscover({
   origenes = [],
   dificultades = [],
   onSelectRecipe,
+  onAddRecipe,
+  onToggleFavorite,
+  onStartCooking,
 }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -61,111 +68,122 @@ export default function RecipeDiscover({
   }, [categorias]);
 
   const filteredRecetas = useMemo(() => {
-    return recetas.filter((r) => {
-      if (selectedCategory !== 'all' && r.plato.categoriaId !== selectedCategory) {
+    return recetas.filter((receta) => {
+      if (selectedCategory !== 'all' && receta.plato.categoriaId !== selectedCategory) {
         return false;
       }
 
-      if (selectedOrigin !== 'all' && r.plato.origenId !== selectedOrigin) {
+      if (selectedDifficulty !== 'all' && receta.plato.dificultadId !== selectedDifficulty) {
         return false;
       }
 
-      if (selectedDifficulty !== 'all' && r.plato.dificultadId !== selectedDifficulty) {
-        return false;
+      if (selectedOrigin !== 'all') {
+        const matchesPrimary = receta.plato.origenId === selectedOrigin;
+        const matchesAny = receta.plato.origenesIds?.includes(selectedOrigin);
+        if (!matchesPrimary && !matchesAny) return false;
       }
 
-      if (selectedMaxTime !== 'all' && (r.tiempoPreparacionMin + r.tiempoCoccionMin) > selectedMaxTime) {
-        return false;
+      if (selectedMaxTime !== 'all') {
+        const totalMinutes =
+          (receta.tiempoPreparacionMin || 0) + (receta.tiempoCoccionMin || 0) ||
+          receta.tiempoMinutos ||
+          0;
+        if (totalMinutes > selectedMaxTime) return false;
       }
 
-      if (searchTerm.trim()) {
+      if (searchTerm.trim() !== '') {
         const query = searchTerm.toLowerCase();
-        const matchName = r.plato.nombre.toLowerCase().includes(query);
-        const matchDesc = r.plato.descripcion.toLowerCase().includes(query);
-        const cat = categorias.find((c) => c.id === r.plato.categoriaId);
-        const orig = origenes.find((o) => o.id === r.plato.origenId);
-        const matchCat = cat?.nombre.toLowerCase().includes(query);
-        const matchOrig = orig?.pais.toLowerCase().includes(query);
-        const matchIng = r.ingredientes.some((i) => i.nombre.toLowerCase().includes(query));
-
-        if (!matchName && !matchDesc && !matchCat && !matchOrig && !matchIng) {
-          return false;
-        }
+        const matchName = receta.plato.nombre.toLowerCase().includes(query);
+        const matchDesc = receta.plato.descripcion?.toLowerCase().includes(query);
+        const matchIngs = (receta.ingredientes ?? []).some((i) =>
+          i.nombre.toLowerCase().includes(query)
+        );
+        if (!matchName && !matchDesc && !matchIngs) return false;
       }
 
       return true;
     });
-  }, [
-    recetas,
-    searchTerm,
-    selectedCategory,
-    selectedOrigin,
-    selectedDifficulty,
-    selectedMaxTime,
-    categorias,
-    origenes,
-  ]);
+  }, [recetas, selectedCategory, selectedDifficulty, selectedOrigin, selectedMaxTime, searchTerm]);
 
   return (
-    <div className="space-y-8">
-      {/* Banner Principal de Descubrir (Hero estilizado con paleta de El Bodegón) */}
-      <section className="relative w-full h-[220px] sm:h-[260px] rounded-2xl overflow-hidden shadow-lg border border-[#c2c9bb]/30 bg-gradient-to-r from-[#154212] via-[#23501e] to-[#2d5a27] p-6 sm:p-10 flex flex-col justify-end text-white">
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none hidden sm:block">
-          <span className="material-symbols-outlined text-[160px]">explore</span>
-        </div>
-        <div className="relative z-10 max-w-xl">
-          <div className="flex gap-2 mb-2">
-            <span className="bg-[#6d4820]/90 backdrop-blur-md text-[#ecb987] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
-              Comunidad
-            </span>
-            <span className="bg-white/20 backdrop-blur-md text-[#bcf0ae] px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
-              Nuevos Sabores
-            </span>
-          </div>
-          <h1 className="font-serif-display text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
-            Descubrir Recetas
+    <div className="space-y-6">
+      {/* Banner de Bienvenida con llamada a la acción */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#154212] via-[#24521f] to-[#3a6b33] p-8 md:p-10 text-white shadow-md">
+        <div className="relative z-10 max-w-2xl space-y-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-md">
+            <span className="material-symbols-outlined text-sm">auto_awesome</span>
+            Comunidad Gastronómica
+          </span>
+          <h1 className="font-serif-display text-2xl md:text-4xl font-extrabold tracking-tight">
+            Descubre y Cocina Platos Extraordinarios
           </h1>
-          <p className="text-xs sm:text-sm text-white/90 leading-relaxed line-clamp-2">
-            Explora platos preparados por la comunidad de El Bodegón Digital. Encuentra tu próxima comida favorita filtrando por tiempo, origen o ingredientes.
+          <p className="text-xs md:text-sm text-white/80 leading-relaxed max-w-xl">
+            Explora recetas compartidas por nuestra comunidad, filtra por ingredientes, tiempo o
+            dificultad, o comparte tus propias creaciones culinarias.
           </p>
+          {onAddRecipe && (
+            <div className="pt-2 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onAddRecipe}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs md:text-sm font-bold text-[#154212] shadow-sm hover:bg-[#bcf0ae] transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">add_circle</span>
+                Crear Nueva Receta
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 opacity-15 pointer-events-none">
+          <span className="material-symbols-outlined text-[280px]">skillet</span>
         </div>
       </section>
 
-      {/* Selector Rápido de Categorías */}
+      {/* Categorías Rápidas */}
       {quickCategories.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif-display text-base font-bold text-[#154212]">
-              Explorar por Categoría
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif-display text-lg font-bold text-[#154212]">
+              Categorías Rápidas
             </h2>
             {selectedCategory !== 'all' && (
               <button
                 type="button"
                 onClick={() => setSelectedCategory('all')}
-                className="text-xs text-[#154212] font-semibold hover:underline"
+                className="text-xs font-semibold text-[#154212] hover:underline"
               >
                 Ver todas
               </button>
             )}
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-            {quickCategories.map((item) => {
-              const isSelected = selectedCategory === item.id;
+          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-thin">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('all')}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+                selectedCategory === 'all'
+                  ? 'bg-[#154212] text-white shadow-sm'
+                  : 'bg-white border border-[#c2c9bb]/60 text-[#42493e] hover:bg-[#f6f3f2]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">restaurant</span>
+              Todas
+            </button>
+            {quickCategories.map((cat) => {
+              const isSelected = selectedCategory === cat.id;
               return (
                 <button
-                  key={item.id}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCategory(isSelected ? 'all' : item.id)}
-                  className="shrink-0 text-left focus:outline-hidden group"
-                >
-                  <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all ${
+                  onClick={() => setSelectedCategory(isSelected ? 'all' : cat.id)}
+                  className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
                     isSelected
-                      ? 'bg-[#bcf0ae] border-[#154212] shadow-sm text-[#154212] font-bold'
-                      : 'bg-white border-[#c2c9bb] text-[#605e5b] hover:bg-[#f6f3f2] hover:text-[#154212]'
-                  }`}>
-                    <span className="material-symbols-outlined text-lg">{item.icon}</span>
-                    <span className="text-xs font-semibold">{item.label}</span>
-                  </div>
+                      ? 'bg-[#154212] text-white shadow-sm'
+                      : 'bg-white border border-[#c2c9bb]/60 text-[#42493e] hover:bg-[#f6f3f2]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">{cat.icon}</span>
+                  {cat.label}
                 </button>
               );
             })}
@@ -219,7 +237,7 @@ export default function RecipeDiscover({
           >
             <option value="all">Todos los Orígenes</option>
             {origenes.map((o) => (
-              <option key={o.id} value={o.id}>{o.bandera} {o.pais}</option>
+              <option key={o.id} value={o.id}>{o.bandera ? `${o.bandera} ` : ''}{o.pais}</option>
             ))}
           </select>
 
@@ -287,6 +305,8 @@ export default function RecipeDiscover({
                 origenes={origenes}
                 dificultades={dificultades}
                 onSelect={onSelectRecipe}
+                onToggleFavorite={onToggleFavorite}
+                onStartCooking={onStartCooking}
               />
             ))}
           </div>

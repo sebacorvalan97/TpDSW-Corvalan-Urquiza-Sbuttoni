@@ -58,10 +58,16 @@ export interface RecipeWriteData {
 
 const API_URL = `${API_BASE}/recipes`;
 
+const parseMinutes = (durationStr: string | null | undefined): number => {
+  if (!durationStr) return 0;
+  const match = String(durationStr).match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+};
+
 const normalizeRecipe = (recipe: RecipeApiResponse): Receta => ({
   ...recipe,
   idReceta: recipe.idRecipe,
-  tiempoMinutos: parseInt(recipe.duracion, 10) || 0,
+  tiempoMinutos: parseMinutes(recipe.duracion),
 });
 
 const saveRecipe = (url: string, method: 'POST' | 'PUT', data: RecipeWriteData) =>

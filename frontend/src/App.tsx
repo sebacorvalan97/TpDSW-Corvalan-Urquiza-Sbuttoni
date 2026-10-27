@@ -24,6 +24,7 @@ import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
 import CategoryCrud from './components/CategoryCrud';
 import IngredientCrud from './components/IngredientCrud';
+import SubstituteIngredientCrud from './components/SubstituteIngredientCrud';
 import RecipeDiscover from './components/RecipeDiscover';
 import RecipeCatalogCrud from './components/RecipeCatalogCrud';
 import AuthPanel, { type AuthRole, type AuthSession } from './components/AuthPanel';
@@ -51,6 +52,7 @@ const toUiRecipe = (apiRecipe: Awaited<ReturnType<typeof recetaService.getAllRec
       imagenUrl: apiRecipe.imagenUrl,
       categoriaId: apiRecipe.idCategory === null ? '' : String(apiRecipe.idCategory),
       origenId: apiRecipe.origins[0] ? String(apiRecipe.origins[0].idOrigin) : '',
+      origenesIds: apiRecipe.origins.map((o) => String(o.idOrigin)),
       dificultadId: apiRecipe.idDifficulty === null ? '' : String(apiRecipe.idDifficulty),
     },
     tiempoPreparacionMin: apiRecipe.tiempoMinutos,
@@ -319,6 +321,7 @@ export default function App() {
     setIsWizardOpen(true);
   };
 
+<<<<<<< HEAD
   const getCategoryIcon = (nombre: string): string => {
     const lower = nombre.toLowerCase();
     if (lower.includes('pasta')) return 'local_pizza';
@@ -339,12 +342,49 @@ export default function App() {
       label: cat.nombre,
       icon: getCategoryIcon(cat.nombre),
     }));
+=======
+  // Categorías destacadas dinámicas basadas en la base de datos con iconos representativos
+  const quickCategories = useMemo(() => {
+    const iconRules: Array<[string, string]> = [
+      ['entrada', 'tapas'],
+      ['principal', 'dinner_dining'],
+      ['postre', 'cake'],
+      ['ensalada', 'eco'],
+      ['sopa', 'ramen_dining'],
+      ['bebida', 'local_bar'],
+      ['snack', 'fastfood'],
+      ['guarnicion', 'rice_bowl'],
+      ['pasta', 'local_pizza'],
+      ['carne', 'kebab_dining'],
+      ['vegano', 'eco'],
+    ];
+
+    return categorias.map((cat) => {
+      const lower = cat.nombre.toLowerCase();
+      let icon = 'restaurant';
+      for (const [key, ic] of iconRules) {
+        if (lower.includes(key)) {
+          icon = ic;
+          break;
+        }
+      }
+      return {
+        id: cat.id,
+        label: cat.nombre,
+        icon,
+      };
+    });
+>>>>>>> origin/main
   }, [categorias]);
 
   // Toggle favorite
   const handleToggleFavorite = async (recetaId: string) => {
-    if (authSession?.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para guardar recetas en favoritos.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para guardar favoritos.');
       return;
     }
     try {
@@ -361,8 +401,12 @@ export default function App() {
 
   // Add Comment & Rating
   const handleAddComment = async (recetaId: string, rating: number, text: string) => {
-    if (!authSession || authSession.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para publicar un comentario y calificar la receta.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para publicar comentarios.');
       return;
     }
     try {
@@ -388,11 +432,16 @@ export default function App() {
   };
 
   const handleLikeComment = async (comentarioId: string) => {
-    if (!authSession || authSession.role !== 'user') {
-      openAuth('user');
+    if (!authSession) {
+      setOperationError('Inicia sesión con tu cuenta de usuario para indicar que te gusta un comentario.');
+      return;
+    }
+    if (authSession.role !== 'user') {
+      setOperationError('Debes ingresar con una cuenta de usuario para dar "Me gusta" a los comentarios.');
       return;
     }
     try {
+      setOperationError('');
       const updated = await userDataService.toggleCommentLike(Number(comentarioId));
       setComentarios((previous) => previous.map((comment) => comment.id === comentarioId
         ? { ...comment, likes: updated.likes, likedByUser: updated.likedByUser }
@@ -482,8 +531,10 @@ export default function App() {
         return false;
       }
 
-      if (selectedOrigin !== 'all' && r.plato.origenId !== selectedOrigin) {
-        return false;
+      if (selectedOrigin !== 'all') {
+        const matchesPrimary = r.plato.origenId === selectedOrigin;
+        const matchesAny = r.plato.origenesIds?.includes(selectedOrigin);
+        if (!matchesPrimary && !matchesAny) return false;
       }
 
       if (selectedDifficulty !== 'all' && r.plato.dificultadId !== selectedDifficulty) {
@@ -499,9 +550,10 @@ export default function App() {
         const matchName = r.plato.nombre.toLowerCase().includes(query);
         const matchDesc = r.plato.descripcion.toLowerCase().includes(query);
         const cat = categorias.find((c) => c.id === r.plato.categoriaId);
-        const orig = origenes.find((o) => o.id === r.plato.origenId);
         const matchCat = cat?.nombre.toLowerCase().includes(query);
-        const matchOrig = orig?.pais.toLowerCase().includes(query);
+        const matchOrig = origenes
+          .filter((o) => o.id === r.plato.origenId || r.plato.origenesIds?.includes(o.id))
+          .some((o) => o.pais.toLowerCase().includes(query) || (o.nombre && o.nombre.toLowerCase().includes(query)));
         const matchIng = r.ingredientes.some((i) => i.nombre.toLowerCase().includes(query));
 
         if (!matchName && !matchDesc && !matchCat && !matchOrig && !matchIng) {
@@ -576,6 +628,7 @@ export default function App() {
       </div>
     );
   }
+
 
 
   return (
@@ -666,7 +719,7 @@ export default function App() {
               )}
 
               {/* QUICK CATEGORIES (matching guide) */}
-              <section className="space-y-3">
+              <section id="categorias-section" className="space-y-3 scroll-mt-24">
                 <div className="flex justify-between items-end">
                   <h2 className="font-serif-display text-xl md:text-2xl font-bold text-[#154212]">
                     Categorías Rápidas
@@ -867,6 +920,11 @@ export default function App() {
                 setIsCookingDirect(false);
               }}
               onAddRecipe={createRecipe}
+              onToggleFavorite={handleToggleFavorite}
+              onStartCooking={(r) => {
+                setSelectedRecipe(r);
+                setIsCookingDirect(true);
+              }}
             />
           )}
 
@@ -911,6 +969,7 @@ export default function App() {
                 unidadMedidaDefecto: item.unidadMedidaDefecto,
                 sustitutos: [],
               })))} />
+              <SubstituteIngredientCrud />
               <AdminCrudPanel
               recetas={recetas}
               categorias={categorias}
@@ -1068,8 +1127,7 @@ export default function App() {
             </p>
           </div>
           <div className="text-[11px] text-right text-white/70">
-            <p>Alcance Mínimo (Regularidad) & Adicionales de Aprobación</p>
-            <p>React 19 • Tailwind CSS • Material Symbols</p>
+              
           </div>
         </div>
       </footer>

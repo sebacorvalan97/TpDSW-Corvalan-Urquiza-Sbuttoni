@@ -35,8 +35,19 @@ export default function Navbar({
           <button type="button" onClick={() => setCurrentTab('recipes')} className={navButtonClass(currentTab === 'recipes')}>
             Recetas
           </button>
-          <button type="button" onClick={() => setCurrentTab('discover')} className={navButtonClass(currentTab === 'discover')}>Descubrir</button>
-          <button type="button" className={navButtonClass(false)}>Categorías</button>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('recipes');
+              setTimeout(() => {
+                const el = document.getElementById('categorias-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 50);
+            }}
+            className={navButtonClass(false)}
+          >
+            Categorías
+          </button>
         </nav>
 
         <nav aria-label="Acciones de cuenta" className="flex shrink-0 items-center gap-2 sm:gap-3">

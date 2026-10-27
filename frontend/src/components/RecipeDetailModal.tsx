@@ -136,9 +136,22 @@ export default function RecipeDetailModal({
                 </div>
                 <p className="mt-1 text-sm">{comment.texto}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-gray-600">
-                  <time dateTime={comment.fecha}>{new Date(comment.fecha).toLocaleDateString()}</time>
-                  <button className="hover:underline" onClick={() => void onLikeComment(comment.id)} type="button">
-                    {comment.likedByUser ? 'Te gusta' : 'Me gusta'} · {comment.likes}
+                  <button
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                      comment.likedByUser
+                        ? 'bg-red-50 text-red-600 shadow-xs'
+                        : 'bg-[#f0eded] text-[#42493e] hover:bg-[#e4e2e1]'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onLikeComment(comment.id);
+                    }}
+                    type="button"
+                    title={comment.likedByUser ? 'Quitar Me gusta' : 'Dar Me gusta'}
+                  >
+                    <span>{comment.likedByUser ? '❤️' : '🤍'}</span>
+                    <span>{comment.likedByUser ? 'Te gusta' : 'Me gusta'}</span>
+                    <span className="opacity-75">({comment.likes})</span>
                   </button>
                 </div>
               </li>
