@@ -1,4 +1,4 @@
-﻿// Etiquetas destacadas que se muestran en el panel lateral de Descubrir.
+// Etiquetas destacadas que se muestran en el panel lateral de Descubrir.
 import type { Receta } from '../types';
 import type { AuthSession } from './AuthPanel';
 
@@ -13,12 +13,26 @@ interface Props {
   onAdmin: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  onSelectRecipe?: (receta: Receta) => void;
+  onSearch?: (query: string) => void;
   authSession: AuthSession | null;
   errorMessage?: string;
 }
 
 // Pantalla de exploración con navegación, búsqueda, filtros, estado vacío y acceso a crear receta.
-export default function RecipeDiscover({ recetas, onAddRecipe, onShowRecipes, onCreateUser, onAdmin, onSignIn, onSignOut, authSession, errorMessage }: Props) {
+export default function RecipeDiscover({
+  recetas,
+  onAddRecipe,
+  onShowRecipes,
+  onCreateUser,
+  onAdmin,
+  onSignIn,
+  onSignOut,
+  onSelectRecipe,
+  onSearch,
+  authSession,
+  errorMessage,
+}: Props) {
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md overflow-x-hidden">
       {/* Cabecera del sitio: marca, navegación de escritorio y acceso para agregar una receta. */}
@@ -161,24 +175,24 @@ export default function RecipeDiscover({ recetas, onAddRecipe, onShowRecipes, on
               </div>
               <input
                 className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-4 pl-14 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-all text-body-lg"
-                placeholder="Buscar recetas, ingredientes o tipos de cocina..."
+                placeholder="Buscar recetas, ingredientes o tipos de cocina (presiona Enter)..."
                 type="text"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onSearch?.((e.target as HTMLInputElement).value);
+                  }
+                }}
               />
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              {['Categoría', 'Dificultad', 'Origen', 'Tiempo de preparación'].map((filter) => (
-                <div key={filter} className="relative group/filter">
-                  <button className="flex items-center bg-surface-container-lowest border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container hover:shadow-sm transition-all">
-                    <span className="font-label-md mr-2">{filter}</span>
-                    <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
-                  </button>
-                </div>
-              ))}
-
-              <div className="h-6 w-px bg-outline-variant mx-2" />
-              <button type="button" className="text-primary font-label-md hover:underline">
-                Borrar todo
+              <button
+                type="button"
+                onClick={onShowRecipes}
+                className="flex items-center bg-surface-container-lowest border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container hover:shadow-sm transition-all text-xs font-semibold text-primary"
+              >
+                <span className="material-symbols-outlined mr-1.5 text-base">tune</span>
+                <span>Filtrar por Categoría, Origen o Dificultad</span>
               </button>
             </div>
           </section>
@@ -195,7 +209,11 @@ export default function RecipeDiscover({ recetas, onAddRecipe, onShowRecipes, on
           ) : (
             <section aria-label="Recetas disponibles" className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {recetas.map((receta) => (
-                <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm" key={receta.id}>
+                <article
+                  className="cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+                  key={receta.id}
+                  onClick={() => onSelectRecipe?.(receta)}
+                >
                   {receta.plato.imagenUrl && (
                     <img
                       alt={`Imagen de ${receta.plato.nombre}`}

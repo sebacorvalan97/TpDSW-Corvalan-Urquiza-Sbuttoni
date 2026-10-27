@@ -82,9 +82,46 @@ const fromDatabase = (recipe: DatabaseRecipe): Recipe => ({
     ratingCount: recipe.plato.comentarios.length,
 });
 
+export interface RecipeFilters {
+    categoryId?: number | undefined;
+    originId?: number | undefined;
+    difficultyId?: number | undefined;
+    search?: string | undefined;
+}
+
 export const recipeRepository = {
-    getAllRecipes: async (): Promise<Recipe[]> => {
+    getAllRecipes: async (filters?: RecipeFilters): Promise<Recipe[]> => {
+        const where: Prisma.RecetaWhereInput = {};
+        if (filters?.categoryId) {
+            where.idCategoria = filters.categoryId;
+        }
+        if (filters?.difficultyId) {
+            where.idDificultad = filters.difficultyId;
+        }
+        if (filters?.originId) {
+            where.plato = {
+                origenes: {
+                    some: {
+                        idOrigen: filters.originId,
+                    },
+                },
+            };
+        }
+        if (filters?.search && filters.search.trim()) {
+            const query = filters.search.trim();
+            where.OR = [
+                { plato: { nombre: { contains: query } } },
+                { plato: { descripcionReceta: { contains: query } } },
+                { descripcionReceta: { contains: query } },
+                { plato: { origenes: { some: { origen: { paisReferencia: { contains: query } } } } } },
+                { plato: { origenes: { some: { origen: { nombreOrigen: { contains: query } } } } } },
+                { categoria: { nombreCategoria: { contains: query } } },
+                { items: { some: { ingrediente: { nombreIngrediente: { contains: query } } } } },
+            ];
+        }
+
         const recipes = await prisma.receta.findMany({
+            where,
             include: recipeInclude,
             orderBy: { idReceta: 'asc' },
         });

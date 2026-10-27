@@ -16,6 +16,7 @@ import { requireAdmin } from '../middleware/auth.js';
 export const categoryRouter = Router();
 
 categoryRouter.get('/', categoryController.getAllCategories);
+categoryRouter.get('/:id/recipes', categoryController.getRecipesByCategory);
 categoryRouter.post('/', requireAdmin, categoryController.createCategory);
 categoryRouter.put('/:id', requireAdmin, categoryController.updateCategory);
 categoryRouter.delete('/:id', requireAdmin, categoryController.deleteCategory);

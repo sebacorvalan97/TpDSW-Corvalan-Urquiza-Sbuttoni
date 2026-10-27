@@ -88,8 +88,22 @@ const readRecipeId = (value: string | string[] | undefined): number => {
 };
 
 export const recipeController = {
-    getAllRecipes: async (_req: Request, res: Response) => {
-        const recipes = await recipeRepository.getAllRecipes();
+    getAllRecipes: async (req: Request, res: Response) => {
+        const categoryParam = req.query.categoryId ?? req.query.category ?? req.query.idCategory;
+        const originParam = req.query.originId ?? req.query.origin ?? req.query.idOrigin;
+        const difficultyParam = req.query.difficultyId ?? req.query.difficulty ?? req.query.idDifficulty;
+        const searchParam = (req.query.search ?? req.query.q ?? req.query.pais)?.toString();
+
+        const categoryId = categoryParam ? Number(categoryParam) : undefined;
+        const originId = originParam ? Number(originParam) : undefined;
+        const difficultyId = difficultyParam ? Number(difficultyParam) : undefined;
+
+        const recipes = await recipeRepository.getAllRecipes({
+            categoryId: Number.isInteger(categoryId) && (categoryId as number) > 0 ? categoryId : undefined,
+            originId: Number.isInteger(originId) && (originId as number) > 0 ? originId : undefined,
+            difficultyId: Number.isInteger(difficultyId) && (difficultyId as number) > 0 ? difficultyId : undefined,
+            search: searchParam,
+        });
         res.json(recipes);
     },
 

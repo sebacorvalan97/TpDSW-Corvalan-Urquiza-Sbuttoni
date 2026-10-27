@@ -10,12 +10,29 @@ export const recipeCatalogRepository = {
         orderBy: { idOrigen: 'asc' },
     }),
 
+    getOriginById: async (id: number) => prisma.origen.findUnique({
+        where: { idOrigen: id },
+        select: {
+            idOrigen: true,
+            nombreOrigen: true,
+            paisReferencia: true,
+        },
+    }),
+
     getDifficulties: async () => prisma.dificultad.findMany({
         select: {
             idDificultad: true,
             nivel: true,
         },
         orderBy: { idDificultad: 'asc' },
+    }),
+
+    getDifficultyById: async (id: number) => prisma.dificultad.findUnique({
+        where: { idDificultad: id },
+        select: {
+            idDificultad: true,
+            nivel: true,
+        },
     }),
 
     createOrigin: async (nombre: string, pais: string) => prisma.origen.create({

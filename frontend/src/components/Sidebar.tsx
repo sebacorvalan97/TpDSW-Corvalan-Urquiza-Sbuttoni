@@ -36,10 +36,20 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
           <span className="material-symbols-outlined mr-3">explore</span>
           <span className="font-label-md">Descubrir</span>
         </button>
-        <div className="flex items-center rounded-lg p-3 text-on-surface-variant">
+        <button
+          className={`${navClass('recipes')} w-full text-left`}
+          onClick={() => {
+            setCurrentTab('recipes');
+            setTimeout(() => {
+              const el = document.getElementById('categorias-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+          }}
+          type="button"
+        >
           <span className="material-symbols-outlined mr-3">category</span>
           <span className="font-label-md">Categorías</span>
-        </div>
+        </button>
         {authSession && (
           <button className={`${navClass('substitutes')} w-full text-left`} onClick={() => setCurrentTab('substitutes')} type="button">
             <span className="material-symbols-outlined mr-3">kitchen</span>
