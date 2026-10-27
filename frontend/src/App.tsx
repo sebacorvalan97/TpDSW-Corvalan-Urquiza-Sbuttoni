@@ -33,6 +33,7 @@ import { categoryService } from './services/category.service';
 import { ingredientService } from './services/ingredient.service';
 import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
+import { UNIDADES_MEDIDA } from './constants/unidades';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
@@ -481,12 +482,14 @@ export default function App() {
 
   const handleCreateIngredientFromWizard = async (nombre: string, unidad: string): Promise<Ingrediente> => {
     if (authSession?.role !== 'admin') {
-      throw new Error('Ese ingrediente no está en el catálogo. Pídele a un administrador que lo agregue.');
+      throw new Error(`El ingrediente "${nombre}" no existe en el catálogo. Por favor selecciónalo de la lista o solicita a un administrador que lo agregue.`);
     }
+    const unitMatch = UNIDADES_MEDIDA.find((u) => u.value === unidad || u.label.toLowerCase() === unidad.toLowerCase());
+    const unidadNormalizada = unitMatch ? unitMatch.value : 'unidad';
     const created = await ingredientService.create({
-      nombre,
+      nombre: nombre.trim(),
       descripcion: '',
-      unidadMedidaDefecto: unidad,
+      unidadMedidaDefecto: unidadNormalizada,
     });
     const newIngredient: Ingrediente = {
       id: String(created.idIngredient),
