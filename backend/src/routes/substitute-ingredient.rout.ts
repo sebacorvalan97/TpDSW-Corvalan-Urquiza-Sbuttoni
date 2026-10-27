@@ -11,11 +11,12 @@
  */
 import { Router } from 'express';
 import { substituteIngredientController } from '../controllers/substitute-ingredient.controller.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 export const substituteIngredientRouter: Router = Router();
 
 substituteIngredientRouter.get('/api/ingredients/:ingredientId/substitutes', substituteIngredientController.getAllSubstitutes);
-substituteIngredientRouter.post('/api/ingredients/:ingredientId/substitutes', substituteIngredientController.createSubstitute);
-substituteIngredientRouter.put('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.updateSubstitute);
-substituteIngredientRouter.delete('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.deleteSubstitute);
+substituteIngredientRouter.post('/api/ingredients/:ingredientId/substitutes', requireAdmin, substituteIngredientController.createSubstitute);
+substituteIngredientRouter.put('/api/ingredients/:ingredientId/substitutes/:id', requireAdmin, substituteIngredientController.updateSubstitute);
+substituteIngredientRouter.delete('/api/ingredients/:ingredientId/substitutes/:id', requireAdmin, substituteIngredientController.deleteSubstitute);
 substituteIngredientRouter.get('/api/ingredients/:ingredientId/substitutes/:id', substituteIngredientController.getSubstituteById);

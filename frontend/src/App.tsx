@@ -51,6 +51,7 @@ const toUiRecipe = (apiRecipe: Awaited<ReturnType<typeof recetaService.getAllRec
       imagenUrl: apiRecipe.imagenUrl,
       categoriaId: apiRecipe.idCategory === null ? '' : String(apiRecipe.idCategory),
       origenId: apiRecipe.origins[0] ? String(apiRecipe.origins[0].idOrigin) : '',
+      origenesIds: apiRecipe.origins.map((o) => String(o.idOrigin)),
       dificultadId: apiRecipe.idDifficulty === null ? '' : String(apiRecipe.idDifficulty),
     },
     tiempoPreparacionMin: apiRecipe.tiempoMinutos,
@@ -493,8 +494,10 @@ export default function App() {
         return false;
       }
 
-      if (selectedOrigin !== 'all' && r.plato.origenId !== selectedOrigin) {
-        return false;
+      if (selectedOrigin !== 'all') {
+        const matchesPrimary = r.plato.origenId === selectedOrigin;
+        const matchesAny = r.plato.origenesIds?.includes(selectedOrigin);
+        if (!matchesPrimary && !matchesAny) return false;
       }
 
       if (selectedDifficulty !== 'all' && r.plato.dificultadId !== selectedDifficulty) {
@@ -510,9 +513,10 @@ export default function App() {
         const matchName = r.plato.nombre.toLowerCase().includes(query);
         const matchDesc = r.plato.descripcion.toLowerCase().includes(query);
         const cat = categorias.find((c) => c.id === r.plato.categoriaId);
-        const orig = origenes.find((o) => o.id === r.plato.origenId);
         const matchCat = cat?.nombre.toLowerCase().includes(query);
-        const matchOrig = orig?.pais.toLowerCase().includes(query);
+        const matchOrig = origenes
+          .filter((o) => o.id === r.plato.origenId || r.plato.origenesIds?.includes(o.id))
+          .some((o) => o.pais.toLowerCase().includes(query) || (o.nombre && o.nombre.toLowerCase().includes(query)));
         const matchIng = r.ingredientes.some((i) => i.nombre.toLowerCase().includes(query));
 
         if (!matchName && !matchDesc && !matchCat && !matchOrig && !matchIng) {
