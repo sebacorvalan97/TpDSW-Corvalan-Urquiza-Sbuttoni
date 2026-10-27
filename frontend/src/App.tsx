@@ -628,6 +628,8 @@ export default function App() {
             setSearchQuery(query);
             navigateTo('recipes');
           }}
+          onNavigateCategories={() => navigateTo('recipes')}
+          onNavigatePantry={() => navigateTo('substitutes')}
           authSession={authSession}
           errorMessage={operationError}
         />
@@ -657,6 +659,27 @@ export default function App() {
             initialCookingMode={isCookingDirect}
             isFavorite={favoriteRecipeIds.includes(Number(selectedRecipe.id.replace(/^rec-/, '')))}
             errorMessage={operationError}
+          />
+        )}
+        {isWizardOpen && (
+          <RecipeWizardModal
+            initialRecipe={editingRecipe}
+            categorias={categorias}
+            origenes={origenes}
+            dificultades={dificultades}
+            ingredientesCatalogo={ingredientes}
+            currentUser={currentUser}
+            onClose={() => {
+              setIsWizardOpen(false);
+              setEditingRecipe(null);
+            }}
+            onNavigateDiscover={() => {
+              setIsWizardOpen(false);
+              setEditingRecipe(null);
+              setCurrentTab('discover');
+            }}
+            onSaveRecipe={handleSaveRecipe}
+            onCreateIngredient={handleCreateIngredientFromWizard}
           />
         )}
       </>

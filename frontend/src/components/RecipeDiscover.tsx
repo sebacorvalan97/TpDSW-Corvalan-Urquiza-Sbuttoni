@@ -15,6 +15,8 @@ interface Props {
   onSignOut: () => void;
   onSelectRecipe?: (receta: Receta) => void;
   onSearch?: (query: string) => void;
+  onNavigateCategories?: () => void;
+  onNavigatePantry?: () => void;
   authSession: AuthSession | null;
   errorMessage?: string;
 }
@@ -30,6 +32,8 @@ export default function RecipeDiscover({
   onSignOut,
   onSelectRecipe,
   onSearch,
+  onNavigateCategories,
+  onNavigatePantry,
   authSession,
   errorMessage,
 }: Props) {
@@ -46,12 +50,12 @@ export default function RecipeDiscover({
             <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onShowRecipes} type="button">
               Recetas
             </button>
-            <a className="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-container transition-colors duration-200" href="#">
+            <button className="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-container transition-colors duration-200" type="button">
               Descubrir
-            </a>
-            <a className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">
+            </button>
+            <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onNavigateCategories ?? onShowRecipes} type="button">
               Categorías
-            </a>
+            </button>
           
           </div>
            
@@ -124,19 +128,19 @@ export default function RecipeDiscover({
               <span className="material-symbols-outlined mr-3">book</span>
               <span className="font-label-md">Recetas</span>
             </button>
-            <a className="flex items-center p-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-transform" href="#">
+            <button className="flex w-full items-center p-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-transform text-left" type="button">
               <span className="material-symbols-outlined mr-3">explore</span>
               <span className="font-label-md">Descubrir</span>
-            </a>
-            <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+            </button>
+            <button className="flex w-full items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-left" onClick={onNavigateCategories ?? onShowRecipes} type="button">
               <span className="material-symbols-outlined mr-3">category</span>
               <span className="font-label-md">Categorías</span>
-            </a>
+            </button>
             {authSession && (
-              <a className="flex items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+              <button className="flex w-full items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-left" onClick={onNavigatePantry} type="button">
                 <span className="material-symbols-outlined mr-3">kitchen</span>
                 <span className="font-label-md">Mi despensa</span>
-              </a>
+              </button>
             )}
           </nav>
 
@@ -145,9 +149,14 @@ export default function RecipeDiscover({
             <p className="font-label-sm uppercase tracking-widest mb-3 text-on-surface-variant">Etiquetas populares</p>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
-                <span key={tag} className="bg-tertiary/10 text-tertiary px-2 py-1 rounded-full text-xs font-semibold">
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => onSearch?.(tag)}
+                  className="bg-tertiary/10 text-tertiary hover:bg-tertiary/20 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                >
                   {tag}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -253,12 +262,12 @@ export default function RecipeDiscover({
           <span className="material-symbols-outlined">add_circle</span>
           <span className="font-label-sm text-[10px]">Crear</span>
         </button>
-        <button type="button" className="flex flex-col items-center justify-center text-secondary">
+        <button type="button" className="flex flex-col items-center justify-center text-secondary" onClick={onNavigateCategories ?? onShowRecipes}>
           <span className="material-symbols-outlined">grid_view</span>
           <span className="font-label-sm text-[10px]">Categorías</span>
         </button>
         {authSession && (
-          <button type="button" className="flex flex-col items-center justify-center text-secondary">
+          <button type="button" className="flex flex-col items-center justify-center text-secondary" onClick={onNavigatePantry}>
             <span className="material-symbols-outlined">inventory_2</span>
             <span className="font-label-sm text-[10px]">Despensa</span>
           </button>
