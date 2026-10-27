@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { recipeCatalogRepository } from '../shared/repositories/recipe-catalog.repository.js';
+import { recipeRepository } from '../shared/repositories/recipe.repository.js';
 import { HttpError } from '../shared/errors/http-error.js';
 
 const positiveId = (value: unknown): number => {
@@ -25,12 +26,39 @@ export const recipeCatalogController = {
         })));
     },
 
+    getOriginById: async (req: Request, res: Response) => {
+        const origin = await recipeCatalogRepository.getOriginById(positiveId(req.params.id));
+        if (!origin) return res.status(404).json({ message: 'Origen no encontrado.' });
+        return res.json({
+            idOrigin: origin.idOrigen,
+            nombre: origin.nombreOrigen,
+            pais: origin.paisReferencia,
+        });
+    },
+
+    getRecipesByOrigin: async (req: Request, res: Response) => {
+        const idOrigin = positiveId(req.params.id);
+        const origin = await recipeCatalogRepository.getOriginById(idOrigin);
+        if (!origin) return res.status(404).json({ message: 'Origen no encontrado.' });
+        const recipes = await recipeRepository.getAllRecipes({ originId: idOrigin });
+        return res.json(recipes);
+    },
+
     getDifficulties: async (_req: Request, res: Response) => {
         const difficulties = await recipeCatalogRepository.getDifficulties();
         res.json(difficulties.map((difficulty) => ({
             idDifficulty: difficulty.idDificultad,
             nivel: difficulty.nivel,
         })));
+    },
+
+    getDifficultyById: async (req: Request, res: Response) => {
+        const difficulty = await recipeCatalogRepository.getDifficultyById(positiveId(req.params.id));
+        if (!difficulty) return res.status(404).json({ message: 'Dificultad no encontrada.' });
+        return res.json({
+            idDifficulty: difficulty.idDificultad,
+            nivel: difficulty.nivel,
+        });
     },
 
     createOrigin: async (req: Request, res: Response) => {

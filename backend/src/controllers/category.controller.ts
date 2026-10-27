@@ -10,6 +10,8 @@
  */
 import type { Request, Response } from 'express';
 import { categoryService } from '../services/category.service.js';
+import { recipeRepository } from '../shared/repositories/recipe.repository.js';
+import { HttpError } from '../shared/errors/http-error.js';
 
 export const categoryController = {
     // GET /api/categories → lista todas
@@ -20,6 +22,17 @@ export const categoryController = {
     // GET /api/categories/:id → una sola
     getCategoryById: async (req: Request, res: Response) => {
         res.json(await categoryService.getById(req.params.id));
+    },
+
+    // GET /api/categories/:id/recipes → listado de recetas de esta categoría
+    getRecipesByCategory: async (req: Request, res: Response) => {
+        const idCategory = Number(req.params.id);
+        if (!Number.isInteger(idCategory) || idCategory <= 0) {
+            throw new HttpError(400, 'El identificador de categoría no es válido.');
+        }
+        await categoryService.getById(idCategory);
+        const recipes = await recipeRepository.getAllRecipes({ categoryId: idCategory });
+        res.json(recipes);
     },
 
     // POST /api/categories → crea. Responde 201 (Created) con la categoría nueva.
