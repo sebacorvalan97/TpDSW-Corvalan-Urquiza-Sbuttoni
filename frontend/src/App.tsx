@@ -9,16 +9,13 @@ import type {
   Comentario 
 } from './types';
 
-import { 
-  INITIAL_USUARIOS, 
-} from './data/mockData';
-
+import { INITIAL_USUARIOS } from './data/mockData';
 import Navbar from './components/NavBar';
 import Sidebar from './components/Sidebar';
 import RecipeCard from './components/RecipeCard';
 import RecipeDetailModal from './components/RecipeDetailModal';
 import RecipeWizardModal from './components/RecipeWizardModal';
-import AdminCrudPanel from './components/AdminCrudPanel';
+import UserManagementCrud from './components/UserManagementCrud';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
@@ -118,7 +115,6 @@ export default function App() {
   const [origenes, setOrigenes] = useState<Origen[]>([]);
   const [dificultades, setDificultades] = useState<Dificultad[]>([]);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>(INITIAL_USUARIOS);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
 
@@ -933,6 +929,7 @@ export default function App() {
           {/* Herramientas de catálogo reservadas a administradores autenticados. */}
           {currentTab === 'admin' && authSession?.role === 'admin' && (
             <>
+              <UserManagementCrud />
               <RecipeCatalogCrud
                 origins={origenes}
                 difficulties={dificultades}
@@ -947,30 +944,6 @@ export default function App() {
                 sustitutos: [],
               })))} />
               <SubstituteIngredientCrud />
-              <AdminCrudPanel
-              recetas={recetas}
-              categorias={categorias}
-              origenes={origenes}
-              dificultades={dificultades}
-              ingredientes={ingredientes}
-              usuarios={usuarios}
-              comentarios={comentarios}
-              setRecetas={setRecetas}
-              setCategorias={setCategorias}
-              setOrigenes={setOrigenes}
-              setDificultades={setDificultades}
-              setIngredientes={setIngredientes}
-              setUsuarios={setUsuarios}
-              setComentarios={setComentarios}
-              onOpenCreateRecipe={() => {
-                setEditingRecipe(null);
-                setIsWizardOpen(true);
-              }}
-              onEditRecipe={(r) => {
-                setEditingRecipe(r);
-                setIsWizardOpen(true);
-              }}
-              />
             </>
           )}
 
