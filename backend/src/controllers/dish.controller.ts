@@ -1,5 +1,7 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { dishRepository } from '../shared/repositories/dish.repository.js';
+import { parseId } from '../shared/utils/parse-id.js';
+import { HttpError } from '../shared/errors/http-error.js';
 
 export const dishController = {
   getAllDishes: async (_req: Request, res: Response) => {
@@ -8,42 +10,63 @@ export const dishController = {
   },
 
   createDish: async (req: Request, res: Response) => {
-    const { name, description } = req.body;
-    const newDish = await dishRepository.createDish(name, description);
+    const { name, description } = req.body ?? {};
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 200) {
+      throw new HttpError(400, 'El nombre del plato es obligatorio (hasta 200 caracteres).');
+    }
+    if (description !== undefined && (typeof description !== 'string' || description.length > 2000)) {
+      throw new HttpError(400, 'La descripción del plato no puede superar los 2000 caracteres.');
+    }
+
+    const newDish = await dishRepository.createDish(
+      name.trim(),
+      typeof description === 'string' ? description.trim() : '',
+    );
     res.status(201).json(newDish);
   },
 
   updateDish: async (req: Request, res: Response) => {
-    const idDish = parseInt(req.params.id as string);
-    const newData = req.body;
-    const dish = await dishRepository.updateDish(idDish, newData);
+    const idDish = parseId(req.params.id);
+    const { name, description } = req.body ?? {};
+
+    if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length > 200)) {
+      throw new HttpError(400, 'El nombre del plato debe ser un texto de hasta 200 caracteres.');
+    }
+    if (description !== undefined && (typeof description !== 'string' || description.length > 2000)) {
+      throw new HttpError(400, 'La descripción del plato no puede superar los 2000 caracteres.');
+    }
+
+    const dish = await dishRepository.updateDish(idDish, {
+      ...(name !== undefined ? { name: name.trim() } : {}),
+      ...(description !== undefined ? { description: description.trim() } : {}),
+    });
 
     if (dish) {
       res.json(dish);
     } else {
-      res.status(404).json({ message: 'Plato no encontrado' });
+      throw new HttpError(404, 'Plato no encontrado');
     }
   },
 
   deleteDish: async (req: Request, res: Response) => {
-    const idDish = parseInt(req.params.id as string);
+    const idDish = parseId(req.params.id);
     const dish = await dishRepository.deleteDish(idDish);
 
     if (dish) {
       res.json({ message: 'Plato eliminado correctamente' });
     } else {
-      res.status(404).json({ message: 'Plato no encontrado' });
+      throw new HttpError(404, 'Plato no encontrado');
     }
   },
 
   getDishById: async (req: Request, res: Response) => {
-    const idDish = parseInt(req.params.id as string);
+    const idDish = parseId(req.params.id);
     const dish = await dishRepository.getDishById(idDish);
 
     if (dish) {
       res.json(dish);
     } else {
-      res.status(404).json({ message: 'Plato no encontrado' });
+      throw new HttpError(404, 'Plato no encontrado');
     }
   },
 };

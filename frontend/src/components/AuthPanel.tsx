@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { API_BASE } from '../services/http';
 
 export type AuthRole = 'user' | 'admin';
 
@@ -29,7 +30,7 @@ export default function AuthPanel({ role, onRoleChange, onSuccess, onCancel }: P
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:8080/api/${role === 'admin' ? 'admins' : 'users'}/login`, {
+      const response = await fetch(`${API_BASE}/${role === 'admin' ? 'admins' : 'users'}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mail: mail.trim(), password }),

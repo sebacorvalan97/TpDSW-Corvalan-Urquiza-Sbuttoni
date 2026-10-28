@@ -9,16 +9,13 @@ import type {
   Comentario 
 } from './types';
 
-import { 
-  INITIAL_USUARIOS, 
-} from './data/mockData';
-
+import { INITIAL_USUARIOS } from './data/mockData';
 import Navbar from './components/NavBar';
 import Sidebar from './components/Sidebar';
 import RecipeCard from './components/RecipeCard';
 import RecipeDetailModal from './components/RecipeDetailModal';
 import RecipeWizardModal from './components/RecipeWizardModal';
-import AdminCrudPanel from './components/AdminCrudPanel';
+import UserManagementCrud from './components/UserManagementCrud';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
@@ -33,6 +30,7 @@ import { categoryService } from './services/category.service';
 import { ingredientService } from './services/ingredient.service';
 import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
+import { API_BASE } from './services/http';
 import { UNIDADES_MEDIDA } from './constants/unidades';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
@@ -118,7 +116,6 @@ export default function App() {
   const [origenes, setOrigenes] = useState<Origen[]>([]);
   const [dificultades, setDificultades] = useState<Dificultad[]>([]);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>(INITIAL_USUARIOS);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
 
@@ -204,7 +201,7 @@ export default function App() {
   useEffect(() => {
     if (!authSession) return;
     const resource = authSession.role === 'admin' ? 'admins' : 'users';
-    void fetch(`http://localhost:8080/api/${resource}/me`, {
+    void fetch(`${API_BASE}/${resource}/me`, {
       headers: { Authorization: `Bearer ${authSession.token}` },
     }).then(async (response) => {
       if (response.status === 401 || response.status === 403) {
@@ -250,7 +247,7 @@ export default function App() {
   const handleLogout = () => {
     if (authSession) {
       const resource = authSession.role === 'admin' ? 'admins' : 'users';
-      void fetch(`http://localhost:8080/api/${resource}/logout`, {
+      void fetch(`${API_BASE}/${resource}/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authSession.token}` },
       }).catch((error: unknown) => console.error('No se pudo invalidar la sesión en el servidor.', error));
@@ -441,9 +438,9 @@ export default function App() {
       descripcion: recipeData.plato.descripcion,
       imagenUrl: recipeData.plato.imagenUrl,
       duracion: (recipeData.tiempoPreparacionMin ?? 0) + (recipeData.tiempoCoccionMin ?? 0),
-      idCategory: Number(recipeData.plato.categoriaId),
-      idDifficulty: Number(recipeData.plato.dificultadId),
-      idOrigin: Number(recipeData.plato.origenId),
+      idCategory: recipeData.plato.categoriaId ? Number(recipeData.plato.categoriaId) : null,
+      idDifficulty: recipeData.plato.dificultadId ? Number(recipeData.plato.dificultadId) : null,
+      idOrigin: recipeData.plato.origenId ? Number(recipeData.plato.origenId) : null,
       ingredients: (recipeData.ingredientes ?? []).map((ingredient) => ({
         idIngredient: Number(ingredient.id),
         cantidad: ingredient.cantidad ?? 1,
@@ -608,83 +605,7 @@ export default function App() {
     );
   }
 
-  // La vista Descubrir tiene su propio diseño; su acción de crear abre el asistente global.
-  if (currentTab === ('discover' as AppTab)) {
-    return (
-      <>
-        <RecipeDiscover
-          recetas={recetas}
-          onAddRecipe={createRecipe}
-          onShowRecipes={() => navigateTo('recipes')}
-          onCreateUser={() => setCurrentTab('register')}
-          onAdmin={() => navigateTo('admin')}
-          onSignIn={() => openAuth('user')}
-          onSignOut={handleLogout}
-          onSelectRecipe={(r) => {
-            setSelectedRecipe(r);
-            setIsCookingDirect(false);
-          }}
-          onSearch={(query) => {
-            setSearchQuery(query);
-            navigateTo('recipes');
-          }}
-          onNavigateCategories={() => navigateTo('recipes')}
-          onNavigatePantry={() => navigateTo('substitutes')}
-          authSession={authSession}
-          errorMessage={operationError}
-        />
-        {selectedRecipe && (
-          <RecipeDetailModal
-            receta={selectedRecipe}
-            categorias={categorias}
-            origenes={origenes}
-            dificultades={dificultades}
-            todosIngredientes={ingredientes}
-            comentarios={comentarios}
-            currentUser={currentUser}
-            onClose={() => setSelectedRecipe(null)}
-            onToggleFavorite={handleToggleFavorite}
-            onAddComment={handleAddComment}
-            onLikeComment={handleLikeComment}
-            onEditRecipe={(r) => {
-              if (!authSession || (authSession.role !== 'admin' && r.creadorUsuarioId !== currentUser.id)) {
-                openAuth(authSession ? 'admin' : 'user');
-                return;
-              }
-              setSelectedRecipe(null);
-              setEditingRecipe(r);
-              setIsWizardOpen(true);
-            }}
-            onDeleteRecipe={handleDeleteRecipe}
-            initialCookingMode={isCookingDirect}
-            isFavorite={favoriteRecipeIds.includes(Number(selectedRecipe.id.replace(/^rec-/, '')))}
-            errorMessage={operationError}
-          />
-        )}
-        {isWizardOpen && (
-          <RecipeWizardModal
-            initialRecipe={editingRecipe}
-            categorias={categorias}
-            origenes={origenes}
-            dificultades={dificultades}
-            ingredientesCatalogo={ingredientes}
-            currentUser={currentUser}
-            onClose={() => {
-              setIsWizardOpen(false);
-              setEditingRecipe(null);
-            }}
-            onNavigateDiscover={() => {
-              setIsWizardOpen(false);
-              setEditingRecipe(null);
-              setCurrentTab('discover');
-            }}
-            onSaveRecipe={handleSaveRecipe}
-            onCreateIngredient={handleCreateIngredientFromWizard}
-          />
-        )}
-      </>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-[#fbf9f8] text-[#1b1c1c] flex flex-col font-sans">
@@ -963,6 +884,26 @@ export default function App() {
             </>
           )}
 
+          {/* VIEW: DISCOVER */}
+          {currentTab === 'discover' && (
+            <RecipeDiscover
+              recetas={recetas}
+              categorias={categorias}
+              origenes={origenes}
+              dificultades={dificultades}
+              onSelectRecipe={(r) => {
+                setSelectedRecipe(r);
+                setIsCookingDirect(false);
+              }}
+              onAddRecipe={createRecipe}
+              onToggleFavorite={handleToggleFavorite}
+              onStartCooking={(r) => {
+                setSelectedRecipe(r);
+                setIsCookingDirect(true);
+              }}
+            />
+          )}
+
           {/* VIEW: COMMUNITY RANKING */}
           {currentTab === 'ranking' && (
             <CommunityRanking
@@ -991,6 +932,7 @@ export default function App() {
           {/* Herramientas de catálogo reservadas a administradores autenticados. */}
           {currentTab === 'admin' && authSession?.role === 'admin' && (
             <>
+              <UserManagementCrud />
               <RecipeCatalogCrud
                 origins={origenes}
                 difficulties={dificultades}
@@ -1005,30 +947,6 @@ export default function App() {
                 sustitutos: [],
               })))} />
               <SubstituteIngredientCrud />
-              <AdminCrudPanel
-              recetas={recetas}
-              categorias={categorias}
-              origenes={origenes}
-              dificultades={dificultades}
-              ingredientes={ingredientes}
-              usuarios={usuarios}
-              comentarios={comentarios}
-              setRecetas={setRecetas}
-              setCategorias={setCategorias}
-              setOrigenes={setOrigenes}
-              setDificultades={setDificultades}
-              setIngredientes={setIngredientes}
-              setUsuarios={setUsuarios}
-              setComentarios={setComentarios}
-              onOpenCreateRecipe={() => {
-                setEditingRecipe(null);
-                setIsWizardOpen(true);
-              }}
-              onEditRecipe={(r) => {
-                setEditingRecipe(r);
-                setIsWizardOpen(true);
-              }}
-              />
             </>
           )}
 
@@ -1124,6 +1042,8 @@ export default function App() {
           initialCookingMode={isCookingDirect}
           isFavorite={favoriteRecipeIds.includes(Number(selectedRecipe.id.replace(/^rec-/, '')))}
           errorMessage={operationError}
+          canEdit={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
+          canDelete={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
         />
       )}
 
