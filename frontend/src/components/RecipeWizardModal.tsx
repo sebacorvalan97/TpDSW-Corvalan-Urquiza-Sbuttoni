@@ -183,12 +183,7 @@ export default function RecipeWizardModal(props: Props) {
 <nav className="bg-surface-bright dark:bg-surface-dim shadow-sm docked full-width top-0 z-50 fixed w-full border-none">
 <div className="flex justify-between items-center w-full px-margin-desktop py-md max-w-7xl mx-auto z-50">
 <div className="font-display-lg text-display-lg text-primary dark:text-primary-fixed-dim">El Bodegón Digital</div>
-<div className="hidden md:flex space-x-8 items-center">
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Mis Recetas</a>
-<button className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={props.onNavigateDiscover} type="button">Descubrir</button>
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Categorías</a>
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Mi Despensa</a>
-</div>
+
 <div className="flex items-center space-x-4">
 <div className="relative hidden sm:block">
 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
