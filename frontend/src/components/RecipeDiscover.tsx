@@ -13,6 +13,8 @@ interface Props {
   onSearch?: (query: string) => void;
   onToggleFavorite?: (id: string) => void;
   onStartCooking?: (recipe: Receta) => void;
+  onNavigateCategories?: () => void;
+  onNavigatePantry?: () => void;
 }
 
 const getCategoryIcon = (nombre: string): string => {
@@ -105,7 +107,7 @@ export default function RecipeDiscover({
 
   return (
     <div className="space-y-6">
-      {/* Banner de Bienvenida con llamada a la acción */}
+      {/* Banner de Bienvenida */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#154212] via-[#24521f] to-[#3a6b33] p-8 md:p-10 text-white shadow-md">
         <div className="relative z-10 max-w-2xl space-y-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-md">

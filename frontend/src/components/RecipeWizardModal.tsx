@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import type { Categoria, Dificultad, Ingrediente, Origen, Receta, Usuario } from '../types';
+import { UNIDADES_MEDIDA } from '../constants/unidades';
+
+// Helper para normalizar cadenas para comparaciones tolerantes
+const normalizeText = (text: string) =>
+  text
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
 // Datos y acciones que App entrega al asistente para editar, guardar, cerrar o cambiar de pantalla.
 interface Props {
@@ -37,27 +46,46 @@ const createId = () => crypto.randomUUID();
 export default function RecipeWizardModal(props: Props) {
   const recipe = props.initialRecipe;
 
-  // Estado de los campos generales; se inicializa con los datos de la receta en modo edición.
+  // Estado de los campos generales; se inicializa con los datos de la receta o el primer valor de los catálogos.
   const [nombre, setNombre] = useState(recipe?.plato.nombre ?? '');
   const [descripcion, setDescripcion] = useState(recipe?.plato.descripcion ?? '');
-  const [categoriaId, setCategoriaId] = useState(recipe?.plato.categoriaId ?? '');
-  const [origenId, setOrigenId] = useState(recipe?.plato.origenId ?? '');
-  const [dificultadId, setDificultadId] = useState(recipe?.plato.dificultadId ?? '');
+  const [categoriaId, setCategoriaId] = useState(recipe?.plato.categoriaId || (props.categorias[0]?.id ?? ''));
+  const [origenId, setOrigenId] = useState(recipe?.plato.origenId || (props.origenes[0]?.id ?? ''));
+  const [dificultadId, setDificultadId] = useState(recipe?.plato.dificultadId || (props.dificultades[0]?.id ?? ''));
   const [imagenUrl, setImagenUrl] = useState(recipe?.plato.imagenUrl ?? '');
   const [duracionMinutos, setDuracionMinutos] = useState(
     recipe ? recipe.tiempoPreparacionMin + recipe.tiempoCoccionMin : 30
   );
 
-  // Estado de las listas dinámicas de ingredientes y pasos, con una fila vacía al crear.
+  // Asegura valores por defecto cuando cargan los catálogos
+  useEffect(() => {
+    if (!categoriaId && props.categorias.length > 0) {
+      setCategoriaId(props.categorias[0].id);
+    }
+  }, [props.categorias, categoriaId]);
+
+  useEffect(() => {
+    if (!origenId && props.origenes.length > 0) {
+      setOrigenId(props.origenes[0].id);
+    }
+  }, [props.origenes, origenId]);
+
+  useEffect(() => {
+    if (!dificultadId && props.dificultades.length > 0) {
+      setDificultadId(props.dificultades[0].id);
+    }
+  }, [props.dificultades, dificultadId]);
+
+  // Estado de las listas dinámicas de ingredientes y pasos, con una fila con valores estándar.
   const [ingredientes, setIngredientes] = useState<IngredienteDraft[]>(
     recipe?.ingredientes.length
       ? recipe.ingredientes.map((ingrediente) => ({
           id: createId(),
           nombre: ingrediente.nombre,
-          cantidad: ingrediente.cantidad?.toString() ?? '',
-          unidad: ingrediente.unidad ?? ingrediente.unidadMedidaDefecto,
+          cantidad: ingrediente.cantidad?.toString() ?? '1',
+          unidad: ingrediente.unidad ?? ingrediente.unidadMedidaDefecto ?? 'unidad',
         }))
-      : [{ id: createId(), nombre: '', cantidad: '', unidad: '' }]
+      : [{ id: createId(), nombre: '', cantidad: '1', unidad: 'unidad' }]
   );
   const [pasos, setPasos] = useState<PasoDraft[]>(
     recipe?.pasos.length
@@ -71,7 +99,7 @@ export default function RecipeWizardModal(props: Props) {
   function agregarIngrediente() {
     setIngredientes((actuales) => [
       ...actuales,
-      { id: createId(), nombre: '', cantidad: '', unidad: '' },
+      { id: createId(), nombre: '', cantidad: '1', unidad: 'unidad' },
     ]);
   }
 
@@ -114,9 +142,9 @@ export default function RecipeWizardModal(props: Props) {
       setError('Agrega al menos un ingrediente y un paso de preparación.');
       return;
     }
-    const ingredientNames = ingredientesCompletos.map((ingredient) => ingredient.nombre.trim().toLowerCase());
+    const ingredientNames = ingredientesCompletos.map((ingredient) => normalizeText(ingredient.nombre));
     if (new Set(ingredientNames).size !== ingredientNames.length) {
-      setError('No repitas un ingrediente en la receta.');
+      setError('No repitas un ingrediente en la misma receta.');
       return;
     }
     if (ingredientesCompletos.some((ingredient) => ingredient.cantidad.trim() && (!Number.isFinite(Number(ingredient.cantidad)) || Number(ingredient.cantidad) <= 0))) {
@@ -137,18 +165,30 @@ export default function RecipeWizardModal(props: Props) {
     try {
       const ingredientesGuardados: Ingrediente[] = [];
       for (const ingrediente of ingredientesCompletos) {
-      const unidad = ingrediente.unidad.trim() || 'unidad';
-      const existente = props.ingredientesCatalogo.find(
-        (item) => item.nombre.toLowerCase() === ingrediente.nombre.trim().toLowerCase()
-      );
-      const catalogo = existente
-        ?? await props.onCreateIngredient(ingrediente.nombre.trim(), unidad);
+        const rawNombre = ingrediente.nombre.trim();
+        const unidad = ingrediente.unidad.trim() || 'unidad';
+        const norm = normalizeText(rawNombre);
 
-      ingredientesGuardados.push({
-        ...catalogo,
-        cantidad: ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : 1,
-        unidad,
-      });
+        // Búsqueda tolerante: coincidencia exacta, sin tildes, o plural/singular (ej. "huevos" -> "huevo")
+        const existente = props.ingredientesCatalogo.find((item) => {
+          const itemNorm = normalizeText(item.nombre);
+          return (
+            itemNorm === norm ||
+            itemNorm === norm.replace(/s$/, '') ||
+            itemNorm.replace(/s$/, '') === norm ||
+            itemNorm === norm.replace(/es$/, '') ||
+            itemNorm.replace(/es$/, '') === norm
+          );
+        });
+
+        const catalogo = existente
+          ?? await props.onCreateIngredient(rawNombre, unidad);
+
+        ingredientesGuardados.push({
+          ...catalogo,
+          cantidad: ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : 1,
+          unidad,
+        });
       }
 
       // Empaqueta los campos del plato y la receta para que App los persista en la API.
@@ -239,6 +279,22 @@ export default function RecipeWizardModal(props: Props) {
 </div>
 {/* Módulo: formulario dividido en secciones; su envío ejecuta las validaciones y el guardado. */}
 <form className="space-y-12 pb-32" id="recipeForm" onSubmit={guardarReceta}>
+{error && (
+  <div className="bg-red-50 border-2 border-red-300 text-red-800 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-in fade-in" role="alert">
+    <span className="material-symbols-outlined text-red-600 shrink-0 mt-0.5">error</span>
+    <div className="flex-1">
+      <p className="font-bold text-sm">No se pudo guardar la receta</p>
+      <p className="text-sm mt-0.5">{error}</p>
+    </div>
+    <button
+      className="text-red-500 hover:text-red-700 text-sm font-bold"
+      onClick={() => setError('')}
+      type="button"
+    >
+      ✕
+    </button>
+  </div>
+)}
 {/* Sección 1: nombre, descripción, categoría, origen, dificultad e imagen de portada. */}
 <section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-variant/20">
 <div className="flex items-center space-x-4 mb-8">
@@ -249,27 +305,27 @@ export default function RecipeWizardModal(props: Props) {
 {/* Campos generales del plato y selector visual del nivel de dificultad. */}
 <div className="space-y-6">
 <div className="group">
-<label className="block text-label-md text-primary mb-2">Nombre de la Receta</label>
+<label className="block text-label-md text-primary mb-2">Nombre de la Receta *</label>
 <input className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all" placeholder="ej. Costillas Estofadas de la Abuela" type="text" value={nombre} onChange={(event) => setNombre(event.target.value)} required/>
 </div>
 <div>
-<label className="block text-label-md text-primary mb-2">Descripción</label>
+<label className="block text-label-md text-primary mb-2">Descripción *</label>
 <textarea className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all" placeholder="Describe brevemente el alma de este plato..." rows={4} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} required></textarea>
 </div>
 <div>
-<label className="block text-label-md text-primary mb-2">Duración (minutos)</label>
+<label className="block text-label-md text-primary mb-2">Duración (minutos) *</label>
 <input className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" min="1" required type="number" value={duracionMinutos} onChange={(event) => setDuracionMinutos(Number(event.target.value))}/>
 </div>
 <div className="grid grid-cols-2 gap-4">
 <div>
-<label className="block text-label-md text-primary mb-2">Categoría</label>
+<label className="block text-label-md text-primary mb-2">Categoría *</label>
 <select className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" value={categoriaId} onChange={(event) => setCategoriaId(event.target.value)} required>
 <option value="">Seleccionar categoría</option>
 {props.categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
 </select>
 </div>
 <div>
-<label className="block text-label-md text-primary mb-2">Origen / Región</label>
+<label className="block text-label-md text-primary mb-2">Origen / Región *</label>
 <select className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" value={origenId} onChange={(event) => setOrigenId(event.target.value)} required>
 <option value="">Seleccionar origen</option>
 {props.origenes.map((origen) => <option key={origen.id} value={origen.id}>{origen.pais}</option>)}
@@ -277,24 +333,31 @@ export default function RecipeWizardModal(props: Props) {
 </div>
 </div>
 <div>
-<label className="block text-label-md text-primary mb-2">Dificultad</label>
+<label className="block text-label-md text-primary mb-2 font-medium">Dificultad *</label>
 <div className="flex space-x-2">
-{props.dificultades.map((dificultad) => (
-  <button
-    className={`flex-1 py-2 rounded-lg border border-outline-variant hover:bg-surface-container font-label-md transition-colors ${dificultadId === dificultad.id ? 'bg-primary-container text-on-primary-container border-primary' : ''}`}
-    key={dificultad.id}
-    onClick={() => setDificultadId(dificultad.id)}
-    type="button"
-  >
-    {dificultad.nivel}
-  </button>
-))}
+{props.dificultades.map((dificultad) => {
+  const isSelected = dificultadId === dificultad.id;
+  return (
+    <button
+      className={`flex-1 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all ${
+        isSelected
+          ? 'bg-[#154212] text-white border-[#154212] shadow-sm'
+          : 'bg-white text-[#42493e] border-[#c2c9bb] hover:bg-[#f6f3f2]'
+      }`}
+      key={dificultad.id}
+      onClick={() => setDificultadId(dificultad.id)}
+      type="button"
+    >
+      {dificultad.nivel}
+    </button>
+  );
+})}
 </div>
 </div>
 </div>
 {/* Campo para ingresar la URL de la imagen que se usará como portada. */}
 <div className="flex flex-col h-full">
-<label className="block text-label-md text-primary mb-2">Foto de Portada</label>
+<label className="block text-label-md text-primary mb-2">Foto de Portada (opcional)</label>
 <div className="flex-1 min-h-[300px] border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-all group p-6 text-center">
 <span className="material-symbols-outlined text-4xl text-outline mb-4 group-hover:scale-110 transition-transform">add_a_photo</span>
 <p className="font-label-md text-primary">URL de la foto de portada</p>
@@ -305,31 +368,72 @@ export default function RecipeWizardModal(props: Props) {
 </section>
 {/* Sección 2: ingredientes editables; cada fila guarda nombre, cantidad y unidad en estado React. */}
 <section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-variant/20">
-<div className="flex items-center justify-between mb-8">
+<div className="flex items-center justify-between mb-4">
 <div className="flex items-center space-x-4">
 <div className="bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center font-bold">2</div>
-<h2 className="font-headline-md text-headline-md text-primary">Ingredientes</h2>
+<h2 className="font-headline-md text-headline-md text-primary">Ingredientes *</h2>
 </div>
 <button className="flex items-center space-x-2 text-primary font-label-md hover:opacity-80 transition-opacity" onClick={agregarIngrediente} type="button">
 <span className="material-symbols-outlined">add_circle</span>
 <span className="">Añadir Elemento</span>
 </button>
 </div>
+<p className="text-xs text-secondary mb-6 flex items-center gap-1.5">
+<span className="material-symbols-outlined text-sm text-[#154212]">info</span>
+Escribe para autocompletar con ingredientes existentes de la despensa. Los administradores pueden añadir nuevos ingredientes directamente.
+</p>
+
+{/* Datalist para sugerencias de autocompletado nativo */}
+<datalist id="catalogo-ingredientes-list">
+{props.ingredientesCatalogo.map((item) => (
+  <option key={item.id} value={item.nombre}>
+    {item.nombre} ({item.unidadMedidaDefecto})
+  </option>
+))}
+</datalist>
+
 <div className="space-y-4" id="ingredientsList">
 {ingredientes.map((ingrediente) => (
 <div className="flex items-center space-x-3 ingredient-row animate-in fade-in duration-300" key={ingrediente.id}>
-<input className="flex-1 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" placeholder="Nombre del ingrediente" type="text" value={ingrediente.nombre} onChange={(event) => actualizarIngrediente(ingrediente.id, { nombre: event.target.value })}/>
-<input className="w-24 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" min="0" placeholder="Cant." step="any" type="number" value={ingrediente.cantidad} onChange={(event) => actualizarIngrediente(ingrediente.id, { cantidad: event.target.value })}/>
-<select className="w-32 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" value={ingrediente.unidad} onChange={(event) => actualizarIngrediente(ingrediente.id, { unidad: event.target.value })}>
-<option value="">Unidad</option>
-<option value="gramos">gramos</option>
-<option value="ml">ml</option>
-<option value="tazas">tazas</option>
-<option value="cda">cda</option>
-<option value="cdta">cdta</option>
-<option value="unidad">unidad</option>
+<input
+  className="flex-1 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all"
+  list="catalogo-ingredientes-list"
+  placeholder="Nombre del ingrediente (ej. Huevo)"
+  type="text"
+  value={ingrediente.nombre}
+  onChange={(event) => {
+    const nuevoNombre = event.target.value;
+    const norm = normalizeText(nuevoNombre);
+    const match = props.ingredientesCatalogo.find((item) => normalizeText(item.nombre) === norm);
+    actualizarIngrediente(ingrediente.id, {
+      nombre: nuevoNombre,
+      ...(match && !ingrediente.unidad ? { unidad: match.unidadMedidaDefecto } : {}),
+    });
+  }}
+  required
+/>
+<input
+  className="w-24 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md text-center"
+  min="0.1"
+  placeholder="Cant."
+  step="any"
+  type="number"
+  value={ingrediente.cantidad}
+  onChange={(event) => actualizarIngrediente(ingrediente.id, { cantidad: event.target.value })}
+  required
+/>
+<select
+  className="w-36 bg-white border border-outline-variant rounded-lg px-3 py-3 font-body-md text-sm"
+  value={ingrediente.unidad}
+  onChange={(event) => actualizarIngrediente(ingrediente.id, { unidad: event.target.value })}
+>
+{UNIDADES_MEDIDA.map((u) => (
+  <option key={u.value} value={u.value}>
+    {u.label}
+  </option>
+))}
 </select>
-<button aria-label="Eliminar ingrediente" className="p-2 text-secondary hover:text-error transition-colors" onClick={() => setIngredientes((actuales) => actuales.filter((item) => item.id !== ingrediente.id))} type="button">
+<button aria-label="Eliminar ingrediente" className="p-2 text-secondary hover:text-error transition-colors" onClick={() => setIngredientes((actuales) => actuales.length > 1 ? actuales.filter((item) => item.id !== ingrediente.id) : actuales)} type="button">
 <span className="material-symbols-outlined">delete</span>
 </button>
 </div>
@@ -341,7 +445,7 @@ export default function RecipeWizardModal(props: Props) {
 <div className="flex items-center justify-between mb-8">
 <div className="flex items-center space-x-4">
 <div className="bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center font-bold">3</div>
-<h2 className="font-headline-md text-headline-md text-primary">Instrucciones</h2>
+<h2 className="font-headline-md text-headline-md text-primary">Instrucciones *</h2>
 </div>
 <button className="flex items-center space-x-2 text-primary font-label-md hover:opacity-80 transition-opacity" onClick={agregarPaso} type="button">
 <span className="material-symbols-outlined">add_circle</span>
@@ -356,9 +460,9 @@ export default function RecipeWizardModal(props: Props) {
 <div className="w-px h-full bg-outline-variant/30 mt-2"></div>
 </div>
 <div className="flex-1 bg-white border border-outline-variant rounded-xl p-4 transition-shadow focus-within:shadow-md">
-<textarea className="w-full border-none p-0 resize-none font-body-md focus:ring-0" placeholder="Describe este paso..." rows={2} value={paso.texto} onChange={(event) => actualizarPaso(paso.id, event.target.value)}></textarea>
+<textarea className="w-full border-none p-0 resize-none font-body-md focus:ring-0" placeholder="Describe este paso..." rows={2} value={paso.texto} onChange={(event) => actualizarPaso(paso.id, event.target.value)} required></textarea>
 <div className="flex justify-end mt-2 pt-2 border-t border-outline-variant/10">
-<button className="text-label-sm text-secondary flex items-center hover:text-error transition-colors" onClick={() => setPasos((actuales) => actuales.filter((item) => item.id !== paso.id))} type="button">
+<button className="text-label-sm text-secondary flex items-center hover:text-error transition-colors" onClick={() => setPasos((actuales) => actuales.length > 1 ? actuales.filter((item) => item.id !== paso.id) : actuales)} type="button">
 <span className="material-symbols-outlined text-sm mr-1">delete</span> Eliminar
                                     </button>
 </div>
@@ -368,16 +472,25 @@ export default function RecipeWizardModal(props: Props) {
 </div>
 </section>
 {/* Acciones fijas del formulario: cancelar, mostrar validaciones y guardar los datos. */}
-<div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-surface-container-lowest border-t border-outline-variant/30 px-margin-desktop py-6 flex items-center justify-between z-40">
-<div className="hidden md:flex flex-col">
-<p className="text-label-sm text-secondary">Borrador autoguardado hace 2 mins</p>
+<div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-outline-variant/30 px-6 py-4 flex items-center justify-between z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+<div className="flex-1 mr-4 min-w-0">
+{error ? (
+  <div className="flex items-center gap-2 text-red-700 text-xs md:text-sm font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2 truncate">
+    <span className="material-symbols-outlined text-base text-red-600 shrink-0">error</span>
+    <span className="truncate">{error}</span>
+  </div>
+) : (
+  <p className="text-label-sm text-secondary hidden md:block">Todos los campos con (*) son obligatorios.</p>
+)}
 </div>
-<div className="flex space-x-4 w-full md:w-auto">
-<button className="flex-1 md:flex-none px-8 py-3 rounded-lg border border-primary text-primary font-bold hover:bg-surface-container-low transition-all" onClick={props.onClose} type="button">Cancelar</button>
-<button className="flex-1 md:flex-none px-12 py-3 rounded-lg bg-primary text-on-primary font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all disabled:cursor-wait disabled:opacity-60" disabled={isSaving} type="submit">{isSaving ? 'Guardando...' : 'Guardar Receta'}</button>
+<div className="flex space-x-3 shrink-0">
+<button className="px-6 py-2.5 rounded-lg border border-outline-variant text-primary font-bold hover:bg-surface-container-low transition-all" onClick={props.onClose} type="button">Cancelar</button>
+<button className="px-8 py-2.5 rounded-lg bg-[#154212] text-white font-bold shadow-md hover:bg-[#1c5518] active:scale-95 transition-all disabled:cursor-wait disabled:opacity-60 flex items-center gap-2" disabled={isSaving} type="submit">
+  {isSaving && <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>}
+  {isSaving ? 'Guardando...' : 'Guardar Receta'}
+</button>
 </div>
 </div>
-{error && <p className="text-error text-sm" role="alert">{error}</p>}
 </form>
 </main>
 </div>
