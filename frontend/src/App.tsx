@@ -30,11 +30,8 @@ import { categoryService } from './services/category.service';
 import { ingredientService } from './services/ingredient.service';
 import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
-<<<<<<< HEAD
 import { API_BASE } from './services/http';
-=======
 import { UNIDADES_MEDIDA } from './constants/unidades';
->>>>>>> origin/main
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
