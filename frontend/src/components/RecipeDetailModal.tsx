@@ -27,6 +27,7 @@ export default function RecipeDetailModal({
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const commentSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -39,8 +40,10 @@ export default function RecipeDetailModal({
       setIsSubmitting(false);
     }
   };
+
   const categoryName = categorias.find((category) => category.id === receta.plato.categoriaId)?.nombre;
-  const originName = origenes.find((origin) => origin.id === receta.plato.origenId)?.pais;
+  const originMatching = origenes.filter((origin) => origin.id === receta.plato.origenId || receta.plato.origenesIds?.includes(origin.id));
+  const originNames = originMatching.map((o) => o.pais || o.nombre).filter(Boolean).join(', ');
   const difficultyName = dificultades.find((difficulty) => difficulty.id === receta.plato.dificultadId)?.nivel;
 
   return (
@@ -52,7 +55,7 @@ export default function RecipeDetailModal({
             <p className="mt-1 text-sm text-gray-700">{receta.plato.descripcion}</p>
             <p className="mt-2 text-sm text-gray-600">
               {receta.calificacionPromedio.toFixed(1)} ★ ({receta.totalCalificaciones} calificaciones)
-              {[categoryName, originName, difficultyName].filter(Boolean).length > 0 && ` · ${[categoryName, originName, difficultyName].filter(Boolean).join(' · ')}`}
+              {[categoryName, originNames, difficultyName].filter(Boolean).length > 0 && ` · ${[categoryName, originNames, difficultyName].filter(Boolean).join(' · ')}`}
             </p>
           </div>
           <button aria-label="Cerrar detalle" className="rounded px-2 py-1 text-xl" onClick={onClose} type="button">×</button>

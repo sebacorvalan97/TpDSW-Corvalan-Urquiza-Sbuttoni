@@ -1,4 +1,4 @@
-import { authHeaders } from './http';
+import { authHeaders, API_BASE } from './http';
 
 export interface PasoReceta {
   idPaso: number;
@@ -7,7 +7,7 @@ export interface PasoReceta {
   descripcion: string;
 }
 
-const API_URL = 'http://localhost:8080/api/pasos-receta';
+const API_URL = `${API_BASE}/pasos-receta`;
 
 export const pasoRecetaService = {
   getAllPasos: async (): Promise<PasoReceta[]> => {
@@ -48,4 +48,4 @@ export const pasoRecetaService = {
     const response = await fetch(`${API_URL}/${idPaso}`);
     return response.json();
   },
-}
+};

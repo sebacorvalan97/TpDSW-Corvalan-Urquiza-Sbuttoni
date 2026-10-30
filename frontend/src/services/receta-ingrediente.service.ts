@@ -1,7 +1,7 @@
 import type { RecetaIngrediente } from '../types';
-import { authHeaders } from './http';
+import { authHeaders, API_BASE } from './http';
 
-const API_URL = 'http://localhost:8080/api/recipes-ingredientes';
+const API_URL = `${API_BASE}/recipes-ingredientes`;
 
 export const recetaIngredienteService = {
   getByRecetaId: async (recetaId: number): Promise<RecetaIngrediente[]> => {

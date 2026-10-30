@@ -18,7 +18,6 @@ import Sidebar from './components/Sidebar';
 import RecipeCard from './components/RecipeCard';
 import RecipeDetailModal from './components/RecipeDetailModal';
 import RecipeWizardModal from './components/RecipeWizardModal';
-import AdminCrudPanel from './components/AdminCrudPanel';
 import CommunityRanking from './components/CommunityRanking';
 import SubstitutesDirectory from './components/SubstitutesDirectory';
 import UserCrud from './components/UserCrud';
@@ -34,6 +33,7 @@ import { ingredientService } from './services/ingredient.service';
 import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
 import { UNIDADES_MEDIDA } from './constants/unidades';
+import { API_BASE } from './services/http';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
@@ -118,7 +118,6 @@ export default function App() {
   const [origenes, setOrigenes] = useState<Origen[]>([]);
   const [dificultades, setDificultades] = useState<Dificultad[]>([]);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>(INITIAL_USUARIOS);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
 
@@ -136,6 +135,7 @@ export default function App() {
   const [authRole, setAuthRole] = useState<AuthRole>('user');
   const [currentTab, setCurrentTab] = useState<AppTab>('discover');
   const [operationError, setOperationError] = useState('');
+  const [adminSection, setAdminSection] = useState<'origins-diff' | 'categories' | 'ingredients' | 'substitutes' | 'all'>('origins-diff');
 
   useEffect(() => {
     let isMounted = true;
@@ -204,7 +204,7 @@ export default function App() {
   useEffect(() => {
     if (!authSession) return;
     const resource = authSession.role === 'admin' ? 'admins' : 'users';
-    void fetch(`http://localhost:8080/api/${resource}/me`, {
+    void fetch(`${API_BASE}/${resource}/me`, {
       headers: { Authorization: `Bearer ${authSession.token}` },
     }).then(async (response) => {
       if (response.status === 401 || response.status === 403) {
@@ -250,7 +250,7 @@ export default function App() {
   const handleLogout = () => {
     if (authSession) {
       const resource = authSession.role === 'admin' ? 'admins' : 'users';
-      void fetch(`http://localhost:8080/api/${resource}/logout`, {
+      void fetch(`${API_BASE}/${resource}/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authSession.token}` },
       }).catch((error: unknown) => console.error('No se pudo invalidar la sesión en el servidor.', error));
@@ -980,7 +980,8 @@ export default function App() {
           {currentTab === 'substitutes' && (
             <SubstitutesDirectory
               ingredientes={ingredientes}
-              authSession={authSession!}
+              authSession={authSession}
+              onSignIn={() => openAuth('user')}
             />
           )}
 
@@ -988,48 +989,77 @@ export default function App() {
             <UserCrud onRegistered={handleAuthSuccess} />
           )}
 
-          {/* Herramientas de catálogo reservadas a administradores autenticados. */}
+          {/* Herramientas de catálogo reservadas a administradores autenticados */}
           {currentTab === 'admin' && authSession?.role === 'admin' && (
-            <>
-              <RecipeCatalogCrud
-                origins={origenes}
-                difficulties={dificultades}
-                onOriginsChanged={setOrigenes}
-                onDifficultiesChanged={setDificultades}
-              />
-              <CategoryCrud onChanged={(items) => setCategorias(items.map((item) => ({ id: String(item.idCategory), nombre: item.nombre })))} />
-              <IngredientCrud onChanged={(items) => setIngredientes(items.map((item) => ({
-                id: String(item.idIngredient),
-                nombre: item.nombre,
-                unidadMedidaDefecto: item.unidadMedidaDefecto,
-                sustitutos: [],
-              })))} />
-              <SubstituteIngredientCrud />
-              <AdminCrudPanel
-              recetas={recetas}
-              categorias={categorias}
-              origenes={origenes}
-              dificultades={dificultades}
-              ingredientes={ingredientes}
-              usuarios={usuarios}
-              comentarios={comentarios}
-              setRecetas={setRecetas}
-              setCategorias={setCategorias}
-              setOrigenes={setOrigenes}
-              setDificultades={setDificultades}
-              setIngredientes={setIngredientes}
-              setUsuarios={setUsuarios}
-              setComentarios={setComentarios}
-              onOpenCreateRecipe={() => {
-                setEditingRecipe(null);
-                setIsWizardOpen(true);
-              }}
-              onEditRecipe={(r) => {
-                setEditingRecipe(r);
-                setIsWizardOpen(true);
-              }}
-              />
-            </>
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-[#c2c9bb]/60 bg-white p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#f0eded] pb-4 mb-4">
+                  <div>
+                    <h1 className="font-serif text-2xl font-bold text-[#154212]">Panel de Administración</h1>
+                    <p className="text-xs text-[#605e5b] mt-0.5">Gestiona los catálogos maestros y la configuración culinaria de la plataforma</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingRecipe(null);
+                      setIsWizardOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl bg-[#154212] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#2d5a27] transition"
+                  >
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    <span>Nueva Receta Oficial</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {[
+                    { id: 'origins-diff', label: '🌍 Orígenes y Dificultades' },
+                    { id: 'categories', label: '📁 Categorías' },
+                    { id: 'ingredients', label: '🥕 Ingredientes' },
+                    { id: 'substitutes', label: '🔄 Sustitutos' },
+                    { id: 'all', label: '📋 Ver Todo' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setAdminSection(tab.id as typeof adminSection)}
+                      className={`px-3.5 py-2 rounded-xl font-semibold transition ${
+                        adminSection === tab.id
+                          ? 'bg-[#154212] text-white shadow-xs'
+                          : 'bg-[#f6f3f2] text-[#42493e] hover:bg-[#e4e2e1]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(adminSection === 'origins-diff' || adminSection === 'all') && (
+                <RecipeCatalogCrud
+                  origins={origenes}
+                  difficulties={dificultades}
+                  onOriginsChanged={setOrigenes}
+                  onDifficultiesChanged={setDificultades}
+                />
+              )}
+
+              {(adminSection === 'categories' || adminSection === 'all') && (
+                <CategoryCrud onChanged={(items) => setCategorias(items.map((item) => ({ id: String(item.idCategory), nombre: item.nombre })))} />
+              )}
+
+              {(adminSection === 'ingredients' || adminSection === 'all') && (
+                <IngredientCrud onChanged={(items) => setIngredientes(items.map((item) => ({
+                  id: String(item.idIngredient),
+                  nombre: item.nombre,
+                  unidadMedidaDefecto: item.unidadMedidaDefecto,
+                  sustitutos: [],
+                })))} />
+              )}
+
+              {(adminSection === 'substitutes' || adminSection === 'all') && (
+                <SubstituteIngredientCrud />
+              )}
+            </div>
           )}
 
         </main>

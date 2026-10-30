@@ -36,6 +36,10 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
           <span className="material-symbols-outlined mr-3">explore</span>
           <span className="font-label-md">Descubrir</span>
         </button>
+        <button className={`${navClass('ranking')} w-full text-left`} onClick={() => setCurrentTab('ranking')} type="button">
+          <span className="material-symbols-outlined mr-3 text-amber-600">trophy</span>
+          <span className="font-label-md">Ranking</span>
+        </button>
         <button
           className={`${navClass('recipes')} w-full text-left`}
           onClick={() => {
@@ -50,12 +54,10 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
           <span className="material-symbols-outlined mr-3">category</span>
           <span className="font-label-md">Categorías</span>
         </button>
-        {authSession && (
-          <button className={`${navClass('substitutes')} w-full text-left`} onClick={() => setCurrentTab('substitutes')} type="button">
-            <span className="material-symbols-outlined mr-3">kitchen</span>
-            <span className="font-label-md">Mi despensa</span>
-          </button>
-        )}
+        <button className={`${navClass('substitutes')} w-full text-left`} onClick={() => setCurrentTab('substitutes')} type="button">
+          <span className="material-symbols-outlined mr-3">kitchen</span>
+          <span className="font-label-md">{authSession ? 'Mi despensa' : 'Sustitutos'}</span>
+        </button>
       </nav>
 
       <div className="border-t border-outline-variant pt-6">
@@ -63,7 +65,7 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <button
-              className="rounded-full bg-tertiary/10 px-2 py-1 text-xs font-semibold text-tertiary"
+              className="rounded-full bg-tertiary/10 px-2.5 py-1 text-xs font-semibold text-tertiary hover:bg-tertiary/20 transition cursor-pointer"
               key={tag}
               onClick={() => onSelectTag(tag)}
               type="button"

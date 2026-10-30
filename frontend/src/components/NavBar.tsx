@@ -29,11 +29,22 @@ export default function Navbar({
   return (
     <header className="sticky top-0 z-50 h-[72px] border-b border-[#e4e2e1] bg-white">
       <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between gap-6 px-4 md:px-8">
-        <strong className="shrink-0 font-serif text-2xl font-normal text-[#154212] sm:text-3xl">El Bodegón Digital</strong>
+        <strong
+          onClick={() => setCurrentTab('discover')}
+          className="shrink-0 font-serif text-2xl font-normal text-[#154212] sm:text-3xl cursor-pointer"
+        >
+          El Bodegón Digital
+        </strong>
 
         <nav aria-label="Navegación principal" className="hidden items-center gap-6 md:flex">
           <button type="button" onClick={() => setCurrentTab('recipes')} className={navButtonClass(currentTab === 'recipes')}>
             Recetas
+          </button>
+          <button type="button" onClick={() => setCurrentTab('discover')} className={navButtonClass(currentTab === 'discover')}>
+            Descubrir
+          </button>
+          <button type="button" onClick={() => setCurrentTab('ranking')} className={navButtonClass(currentTab === 'ranking')}>
+            Ranking
           </button>
           <button
             type="button"
@@ -65,7 +76,7 @@ export default function Navbar({
           <button
             type="button"
             onClick={() => setCurrentTab('register')}
-           className="flex items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 active:scale-95"
+            className="flex items-center rounded-lg bg-[#154212] px-3 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[#2d5a27] active:scale-95"
           >
             <span className="material-symbols-outlined mr-1.5 text-lg">person_add</span>
             Crear usuario

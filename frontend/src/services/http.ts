@@ -5,8 +5,8 @@
  * a mensajes legibles. Lo escribimos UNA vez acá y cada servicio lo reutiliza (no copiamos y pegamos).
  */
 
-// Dirección base del backend. Cada servicio le suma su recurso: `${API_BASE}/ingredients`.
-export const API_BASE = 'http://localhost:8080/api';
+// Dirección base del backend. Si está configurada una variable de entorno se usa, si no '/api' a través del proxy de Vite.
+export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
 
 // Cabecera que le avisa al backend que el cuerpo de la petición viene en formato JSON.
 export const JSON_HEADERS = { 'Content-Type': 'application/json' };

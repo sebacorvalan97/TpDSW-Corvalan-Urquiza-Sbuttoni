@@ -1,4 +1,4 @@
-import { authHeaders } from './http';
+import { authHeaders, API_BASE } from './http';
 
 // Definimos la interfaz aquí mismo para evitar el conflicto de módulos con types.ts
 export interface Plato {
@@ -7,7 +7,7 @@ export interface Plato {
   description: string;
 }
 
-const API_URL = 'http://localhost:8080/api/dishes';
+const API_URL = `${API_BASE}/dishes`;
 
 export const platoService = {
   getAllPlatos: async (): Promise<Plato[]> => {
@@ -44,4 +44,4 @@ export const platoService = {
     const response = await fetch(`${API_URL}/${idDish}`);
     return response.json();
   },
-}
+};
