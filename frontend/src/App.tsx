@@ -1186,7 +1186,7 @@ export default function App() {
           <div>
             <span className="font-serif-display text-lg font-bold text-white">El Bodegón Digital</span>
             <p className="text-[11px] text-[#bcf0ae] mt-0.5">
-              Trabajo Práctico DSW • UTN FRT • Corvalan, Sbuttoni, Urquiza
+              Trabajo Práctico DSW • UTN FRRo • Corvalan, Sbuttoni, Urquiza
             </p>
           </div>
           <div className="text-[11px] text-right text-white/70">
