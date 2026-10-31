@@ -70,50 +70,64 @@ export default function Navbar({
 
         <nav aria-label="Acciones de cuenta" className="flex shrink-0 items-center gap-2 sm:gap-3">
           {authSession && (
-          <button
-            type="button"
-            onClick={() => setCurrentTab('create')}
-            className="hidden items-center gap-2 rounded-full bg-[#154212] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d5a27] sm:inline-flex"
-          >
-            <span className="material-symbols-outlined text-lg">add</span>
-            Agregar receta
-          </button>
+            <button
+              type="button"
+              onClick={() => setCurrentTab('create')}
+              className="hidden items-center gap-2 rounded-full bg-[#154212] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d5a27] sm:inline-flex"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              Agregar receta
+            </button>
           )}
-        {!authSession && (
-          <button
-            type="button"
-            onClick={() => setCurrentTab('register')}
-            className="flex items-center rounded-lg bg-[#154212] px-3 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[#2d5a27] active:scale-95"
-          >
-            <span className="material-symbols-outlined mr-1.5 text-lg">person_add</span>
-            Crear usuario
-          </button>
-        )}
-        {authSession?.role === 'admin' && (
-          <button
-            type="button"
-            onClick={() => setCurrentTab('admin')}
-            className="rounded-full border border-[#c2c9bb] px-3 py-2 text-sm font-medium text-[#154212] hover:bg-[#f6f3f2]"
-          >
-            Panel administrador
-          </button>
-        )}
-        {authSession ? (
-          <>
-            {favoritesCount > 0 && <span className="hidden text-sm text-[#605e5b] lg:inline">{favoritesCount} favoritas</span>}
-            <div className="flex items-center gap-2 rounded-full border border-[#c2c9bb] bg-[#f6f3f2] px-2 py-1.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#154212] text-sm font-bold text-white">
-                {authSession.name.charAt(0).toUpperCase()}
-              </span>
-              <span className="hidden max-w-32 truncate text-sm font-medium text-[#1b1c1c] sm:inline">{authSession.name}</span>
-              <button type="button" onClick={onSignOut} className="px-2 text-sm text-[#605e5b] hover:text-[#154212]">Salir</button>
-            </div>
-          </>
-        ) : (
-          <button type="button" onClick={onSignIn} className="rounded-full border border-[#c2c9bb] px-3 py-2 text-sm font-medium text-[#154212] hover:bg-[#f6f3f2]">
-            Iniciar sesión
-          </button>
-        )}
+          {!authSession && (
+            <button
+              type="button"
+              onClick={() => setCurrentTab('register')}
+              className="flex items-center rounded-lg bg-[#154212] px-3 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[#2d5a27] active:scale-95"
+            >
+              <span className="material-symbols-outlined mr-1.5 text-lg">person_add</span>
+              Crear usuario
+            </button>
+          )}
+          {authSession?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => setCurrentTab('admin')}
+              className="rounded-full border border-[#c2c9bb] px-3 py-2 text-sm font-medium text-[#154212] hover:bg-[#f6f3f2]"
+            >
+              Panel administrador
+            </button>
+          )}
+          {authSession ? (
+            <>
+              {favoritesCount > 0 && (
+                <span className="hidden text-sm text-[#605e5b] lg:inline">{favoritesCount} favoritas</span>
+              )}
+              <div className="flex items-center gap-2 rounded-full border border-[#c2c9bb] bg-[#f6f3f2] px-2 py-1.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#154212] text-sm font-bold text-white">
+                  {authSession.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden max-w-32 truncate text-sm font-medium text-[#1b1c1c] sm:inline">
+                  {authSession.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="px-2 text-sm text-[#605e5b] hover:text-[#154212]"
+                >
+                  Salir
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="rounded-full border border-[#c2c9bb] px-3 py-2 text-sm font-medium text-[#154212] hover:bg-[#f6f3f2]"
+            >
+              Iniciar sesión
+            </button>
+          )}
         </nav>
       </div>
     </header>

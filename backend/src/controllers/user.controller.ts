@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { userRepository } from "../shared/repositories/user.repository.js";
 import { createSession, destroySession, getSessionFromRequest, getTokenFromRequest } from "../middleware/auth.js";
 import { isActiveAccountState } from "../shared/utils/account-status.js";
+import { parseId } from "../shared/utils/parse-id.js";
 
 export const userController = {
     login: async (req: Request, res: Response) => {
@@ -68,7 +69,7 @@ export const userController = {
     },
     
     updateUser: async (req: Request, res: Response) => {
-        const idUser = parseInt(req.params.id as string);
+        const idUser = parseId(req.params.id);
         const { name, birth, password, state, mail, bio } = req.body ?? {};
         if (
             (name !== undefined && typeof name !== "string") ||
@@ -94,7 +95,7 @@ export const userController = {
     },
     
     deleteUser: async (req: Request, res: Response) => {
-        const idUser = parseInt(req.params.id as string);
+        const idUser = parseId(req.params.id);
         const user = await userRepository.deleteUser(idUser);
 
         if (user) {
@@ -105,7 +106,7 @@ export const userController = {
     },
     
     getUserById: async (req: Request, res: Response) => {
-        const idUser = parseInt(req.params.id as string);
+        const idUser = parseId(req.params.id);
         const user = await userRepository.getUserById(idUser);
 
         if (user) {

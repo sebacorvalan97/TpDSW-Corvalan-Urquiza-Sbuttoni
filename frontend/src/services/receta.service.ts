@@ -48,9 +48,9 @@ export interface RecipeWriteData {
   nombre: string;
   descripcion: string;
   duracion: number;
-  idCategory: number;
-  idDifficulty: number;
-  idOrigin: number;
+  idCategory: number | null;
+  idDifficulty: number | null;
+  idOrigin: number | null;
   imagenUrl: string;
   ingredients: Array<{ idIngredient: number; cantidad: number; unidad: string }>;
   steps: string[];

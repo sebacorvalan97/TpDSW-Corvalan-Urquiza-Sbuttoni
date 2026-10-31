@@ -5,8 +5,8 @@
  * a mensajes legibles. Lo escribimos UNA vez acá y cada servicio lo reutiliza (no copiamos y pegamos).
  */
 
-// Dirección base del backend. Si está configurada una variable de entorno se usa, si no '/api' a través del proxy de Vite.
-export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+// Dirección base del backend. Soporta variable de entorno o fallback relativo '/api' con proxy de Vite.
+export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || (import.meta.env.VITE_API_URL as string | undefined) || '/api';
 
 // Cabecera que le avisa al backend que el cuerpo de la petición viene en formato JSON.
 export const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -44,16 +44,19 @@ export async function request<T>(url: string, options?: RequestInit): Promise<T>
     }
 
     if (!response.ok) {
-        // El backend manda { message: '...' } cuando hay un error. Lo mostramos tal cual.
-        const body = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(body?.message ?? `Error inesperado (${response.status})`);
+        // El servidor respondió, pero con error (400, 404, 409, 500...).
+        const body = await response.json().catch(() => null) as { message?: string } | null;
+        const message = body?.message || `Error del servidor (${response.status})`;
+        throw new Error(message);
     }
 
-    // 204 = "salió bien pero no hay contenido" (lo que devuelve DELETE).
+    // 204 No Content: éxito pero sin cuerpo (por ejemplo, en DELETE).
     if (response.status === 204) return undefined as T;
+
     return (await response.json()) as T;
 }
 
-// Extrae un texto legible de cualquier error (los de `request` ya traen un mensaje amigable).
-export const getErrorMessage = (error: unknown): string =>
-    error instanceof Error ? error.message : 'Ocurrió un error inesperado';
+export function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+}

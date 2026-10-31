@@ -2,19 +2,19 @@ import type { Categoria, Dificultad, Origen, Receta } from '../types';
 
 interface Props {
   receta: Receta;
-  categorias: Categoria[];
-  origenes: Origen[];
-  dificultades: Dificultad[];
+  categorias?: Categoria[];
+  origenes?: Origen[];
+  dificultades?: Dificultad[];
   onSelect: (recipe: Receta) => void;
-  onToggleFavorite: (id: string) => void;
-  onStartCooking: (recipe: Receta) => void;
+  onToggleFavorite?: (id: string) => void;
+  onStartCooking?: (recipe: Receta) => void;
 }
 
 export default function RecipeCard({
   receta,
-  categorias,
-  origenes,
-  dificultades,
+  categorias = [],
+  origenes = [],
+  dificultades = [],
   onSelect,
   onToggleFavorite,
   onStartCooking,
@@ -25,7 +25,19 @@ export default function RecipeCard({
   const totalTime = (receta.tiempoPreparacionMin || 0) + (receta.tiempoCoccionMin || 0);
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-[#c2c9bb]/60 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+    <article
+      tabIndex={0}
+      role="button"
+      onClick={() => onSelect(receta)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(receta);
+        }
+      }}
+      className="group cursor-pointer flex flex-col overflow-hidden rounded-2xl border border-[#c2c9bb]/60 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#154212]"
+      aria-label={`Ver receta de ${receta.plato.nombre}`}
+    >
       {/* Imagen de la receta o fondo ilustrativo */}
       <div className="relative h-48 w-full overflow-hidden bg-[#f0eded]">
         {receta.plato.imagenUrl ? (
@@ -42,27 +54,29 @@ export default function RecipeCard({
         )}
 
         {/* Botón de favorito flotante */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(receta.id);
-          }}
-          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 ${
-            receta.esFavorito
-              ? 'bg-red-50 text-red-600 shadow-md'
-              : 'bg-white/80 text-[#605e5b] hover:bg-white hover:text-red-600'
-          }`}
-          title={receta.esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}
-          aria-label={receta.esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}
-        >
-          <span className={`material-symbols-outlined text-xl ${receta.esFavorito ? 'font-fill' : ''}`}>
-            favorite
-          </span>
-        </button>
+        {onToggleFavorite && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(receta.id);
+            }}
+            className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-90 ${
+              receta.esFavorito
+                ? 'bg-red-50 text-red-600 shadow-md'
+                : 'bg-white/80 text-[#605e5b] hover:bg-white hover:text-red-600'
+            }`}
+            title={receta.esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+            aria-label={receta.esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+          >
+            <span className={`material-symbols-outlined text-xl ${receta.esFavorito ? 'font-fill' : ''}`}>
+              favorite
+            </span>
+          </button>
+        )}
 
         {/* Badges de Categoría y Origen */}
-        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
           {category && (
             <span className="rounded-full bg-[#154212]/90 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm">
               {category.nombre}
@@ -79,8 +93,7 @@ export default function RecipeCard({
       {/* Contenido principal de la tarjeta */}
       <div className="flex flex-1 flex-col p-5">
         <h3
-          onClick={() => onSelect(receta)}
-          className="cursor-pointer font-serif text-lg font-bold text-[#154212] transition-colors hover:text-[#2d5a27] line-clamp-1"
+          className="font-serif text-lg font-bold text-[#154212] transition-colors hover:text-[#2d5a27] line-clamp-1"
           title={receta.plato.nombre}
         >
           {receta.plato.nombre}
@@ -117,20 +130,28 @@ export default function RecipeCard({
         <div className="mt-4 flex gap-2 pt-2">
           <button
             type="button"
-            onClick={() => onSelect(receta)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(receta);
+            }}
             className="flex-1 rounded-xl bg-[#f6f3f2] py-2 text-center text-xs font-bold text-[#154212] transition hover:bg-[#bcf0ae] active:scale-98"
           >
             Ver detalle
           </button>
-          <button
-            type="button"
-            onClick={() => onStartCooking(receta)}
-            className="flex items-center justify-center gap-1 rounded-xl bg-[#154212] px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#2d5a27] active:scale-98"
-            title="Modo cocina paso a paso"
-          >
-            <span>Cocinar</span>
-            <span className="material-symbols-outlined text-sm">play_arrow</span>
-          </button>
+          {onStartCooking && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartCooking(receta);
+              }}
+              className="flex items-center justify-center gap-1 rounded-xl bg-[#154212] px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#2d5a27] active:scale-98"
+              title="Modo cocina paso a paso"
+            >
+              <span>Cocinar</span>
+              <span className="material-symbols-outlined text-sm">play_arrow</span>
+            </button>
+          )}
         </div>
       </div>
     </article>
