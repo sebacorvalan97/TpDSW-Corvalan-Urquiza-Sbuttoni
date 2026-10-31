@@ -34,6 +34,7 @@ import { recipeCatalogService } from './services/recipe-catalog.service';
 import { userDataService, type CommentApi } from './services/user-data.service';
 import { UNIDADES_MEDIDA } from './constants/unidades';
 import { API_BASE } from './services/http';
+import { getCountryFlag } from './utils/flags';
 
 type AppTab = 'recipes' | 'ranking' | 'create' | 'register' | 'auth' | 'admin' | 'substitutes' | 'favorites' | 'discover';
 
@@ -157,7 +158,7 @@ export default function App() {
         unidadMedidaDefecto: ingredient.unidadMedidaDefecto,
         sustitutos: [],
       })));
-      setOrigenes(apiOrigins.map((origin) => ({ id: String(origin.idOrigin), pais: origin.pais, nombre: origin.nombre, bandera: '' })));
+      setOrigenes(apiOrigins.map((origin) => ({ id: String(origin.idOrigin), pais: origin.pais, nombre: origin.nombre, bandera: getCountryFlag(origin.pais) })));
       setDificultades(apiDifficulties.map((difficulty) => ({ id: String(difficulty.idDifficulty), nivel: difficulty.nivel })));
     }).catch((error: unknown) => {
       console.error('No se pudieron cargar las recetas y sus catálogos desde el servidor.', error);
@@ -829,8 +830,19 @@ export default function App() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar recetas, ingredientes o cocinas..."
-                    className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl py-3 pl-11 pr-4 text-xs sm:text-sm text-[#1b1c1c] focus:ring-2 focus:ring-[#154212] focus:outline-hidden transition-all"
+                    className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl py-3 pl-11 pr-10 text-xs sm:text-sm text-[#1b1c1c] focus:ring-2 focus:ring-[#154212] focus:outline-hidden transition-all"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#e1e3e1] hover:bg-[#c2c9bb] text-[#42493e] flex items-center justify-center text-xs transition-colors"
+                      title="Limpiar búsqueda"
+                      aria-label="Limpiar búsqueda"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
 
                 {/* Filter Pills */}
@@ -872,7 +884,7 @@ export default function App() {
                     >
                       <option value="all">Todos los Orígenes</option>
                       {origenes.map((o) => (
-                        <option key={o.id} value={o.id}>{o.bandera} {o.pais}</option>
+                        <option key={o.id} value={o.id}>{o.bandera ? `${o.bandera} ` : ''}{o.pais}{o.nombre ? ` (${o.nombre})` : ''}</option>
                       ))}
                     </select>
                   </div>

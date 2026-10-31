@@ -2,6 +2,7 @@ import { useState, useMemo, type FormEvent } from 'react';
 import { recipeCatalogService } from '../services/recipe-catalog.service';
 import { getErrorMessage } from '../services/http';
 import type { Dificultad, Origen } from '../types';
+import { getCountryFlag } from '../utils/flags';
 
 interface Props {
   origins: Origen[];
@@ -33,7 +34,7 @@ export default function RecipeCatalogCrud({
 
   const refreshOrigins = async () => {
     const list = await recipeCatalogService.getOrigins();
-    onOriginsChanged(list.map((o) => ({ id: String(o.idOrigin), pais: o.pais, nombre: o.nombre, bandera: '' })));
+    onOriginsChanged(list.map((o) => ({ id: String(o.idOrigin), pais: o.pais, nombre: o.nombre, bandera: getCountryFlag(o.pais) })));
   };
 
   const refreshDifficulties = async () => {
@@ -269,9 +270,12 @@ export default function RecipeCatalogCrud({
                           : 'border-[#c2c9bb]/40 bg-white hover:bg-[#f6f3f2]'
                       }`}
                     >
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-[#154212]">{origin.nombre || origin.pais}</span>
-                        <span className="text-[11px] text-[#72796e]">País: {origin.pais}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg select-none" role="img" aria-label={origin.pais}>{origin.bandera || getCountryFlag(origin.pais)}</span>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-[#154212]">{origin.nombre || origin.pais}</span>
+                          <span className="text-[11px] text-[#72796e]">País: {origin.pais}</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button
