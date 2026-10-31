@@ -59,6 +59,13 @@ export default function Navbar({
           >
             Categorías
           </button>
+          <button
+            type="button"
+            onClick={() => setCurrentTab('substitutes')}
+            className={navButtonClass(currentTab === 'substitutes')}
+          >
+            {authSession ? 'Mi Despensa' : 'Sustitutos'}
+          </button>
         </nav>
 
         <nav aria-label="Acciones de cuenta" className="flex shrink-0 items-center gap-2 sm:gap-3">

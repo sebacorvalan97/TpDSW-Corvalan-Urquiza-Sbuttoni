@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { AuthSession } from './AuthPanel';
 import type { Ingrediente } from '../types';
 import { getErrorMessage } from '../services/http';
@@ -14,13 +14,24 @@ interface Props {
 export default function SubstitutesDirectory({ ingredientes, authSession, onSignIn }: Props) {
   const [pantry, setPantry] = useState<PantryItemApi[]>([]);
   const [substitutes, setSubstitutes] = useState<SubstituteApi[]>([]);
-  const [ingredientId, setIngredientId] = useState('');
-  const [substituteId, setSubstituteId] = useState('');
+  
+  // Estado para formulario de despensa
+  const [pantryIngredientId, setPantryIngredientId] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState('unidad');
+
+  // Estado para formulario de sustitutos (admin)
+  const [subOriginalId, setSubOriginalId] = useState('');
+  const [subReplacementId, setSubReplacementId] = useState('');
   const [proportion, setProportion] = useState('1:1');
   const [notes, setNotes] = useState('');
+
+  // Filtro de búsqueda en la lista de sustitutos
+  const [subSearch, setSubSearch] = useState('');
+
+  // Mensajes de feedback
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -42,15 +53,21 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
     };
   }, [authSession?.role]);
 
+  const showSuccess = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(''), 4000);
+  };
+
   const updatePantry = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       setError('');
-      const updated = await userDataService.setPantryItem(Number(ingredientId), Number(quantity), unit);
+      const updated = await userDataService.setPantryItem(Number(pantryIngredientId), Number(quantity), unit);
       setPantry(updated);
-      setIngredientId('');
+      setPantryIngredientId('');
       setQuantity('1');
       setUnit('unidad');
+      showSuccess('Ingrediente guardado en tu despensa.');
     } catch (cause: unknown) {
       setError(getErrorMessage(cause));
     }
@@ -61,6 +78,7 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
       setError('');
       await userDataService.removePantryItem(id);
       setPantry((items) => items.filter((item) => item.idIngredient !== id));
+      showSuccess('Ingrediente quitado de tu despensa.');
     } catch (cause: unknown) {
       setError(getErrorMessage(cause));
     }
@@ -70,26 +88,40 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
     event.preventDefault();
     try {
       setError('');
-      const created = await userDataService.createSubstitute(Number(ingredientId), Number(substituteId), proportion, notes);
+      const created = await userDataService.createSubstitute(Number(subOriginalId), Number(subReplacementId), proportion, notes);
       setSubstitutes((items) => [...items.filter((item) => item.id !== created.id), created]);
-      setIngredientId('');
-      setSubstituteId('');
+      setSubOriginalId('');
+      setSubReplacementId('');
       setProportion('1:1');
       setNotes('');
+      showSuccess('Sustituto registrado correctamente en el catálogo.');
     } catch (cause: unknown) {
       setError(getErrorMessage(cause));
     }
   };
 
   const removeSubstitute = async (item: SubstituteApi) => {
+    if (!window.confirm(`¿Eliminar el sustituto "${item.substituteName}" para "${item.ingredientName}"?`)) return;
     try {
       setError('');
       await userDataService.deleteSubstitute(item.ingredientId, item.substituteId);
       setSubstitutes((items) => items.filter((substitute) => substitute.id !== item.id));
+      showSuccess('Sustituto eliminado del catálogo.');
     } catch (cause: unknown) {
       setError(getErrorMessage(cause));
     }
   };
+
+  const filteredSubstitutes = useMemo(() => {
+    const q = subSearch.trim().toLowerCase();
+    if (!q) return substitutes;
+    return substitutes.filter(
+      (s) =>
+        s.ingredientName.toLowerCase().includes(q) ||
+        s.substituteName.toLowerCase().includes(q) ||
+        s.notes.toLowerCase().includes(q)
+    );
+  }, [substitutes, subSearch]);
 
   return (
     <section className="space-y-6 rounded-2xl border border-[#c2c9bb]/60 bg-white p-6 shadow-sm">
@@ -98,7 +130,19 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
         <p className="text-xs text-[#605e5b] mt-0.5">Explora alternativas a ingredientes y gestiona los alimentos disponibles en tu cocina</p>
       </div>
 
-      {error && <p className="rounded-lg bg-[#ffdad6] px-3 py-2 text-sm text-[#93000a]" role="alert">{error}</p>}
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl bg-[#ffdad6] p-3 text-xs text-[#93000a]" role="alert">
+          <span className="material-symbols-outlined text-base">error</span>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="flex items-center gap-2 rounded-xl bg-[#bcf0ae]/40 p-3 text-xs text-[#154212]" role="status">
+          <span className="material-symbols-outlined text-base">check_circle</span>
+          <span>{success}</span>
+        </div>
+      )}
 
       {!authSession && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-[#c2c9bb]/60 bg-[#fbf9f8] p-4">
@@ -129,8 +173,8 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
             <select
               className="flex-1 min-w-44 rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
               required
-              value={ingredientId}
-              onChange={(event) => setIngredientId(event.target.value)}
+              value={pantryIngredientId}
+              onChange={(event) => setPantryIngredientId(event.target.value)}
             >
               <option value="">Seleccionar ingrediente</option>
               {ingredientes.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
@@ -174,13 +218,29 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
         </section>
       )}
 
+      {/* CATÁLOGO DE SUSTITUTOS */}
       <section className="space-y-4 rounded-xl border border-[#c2c9bb]/40 bg-[#fbf9f8] p-5">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#154212]">swap_horiz</span>
-          <h2 className="text-lg font-bold text-[#154212]">Sustitutos Culinarios Disponibles</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#154212]">swap_horiz</span>
+            <h2 className="text-lg font-bold text-[#154212]">Sustitutos Culinarios Disponibles</h2>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#72796e] text-sm pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              value={subSearch}
+              onChange={(e) => setSubSearch(e.target.value)}
+              placeholder="Buscar sustituto..."
+              className="w-full rounded-lg border border-[#c2c9bb]/70 bg-white py-1.5 pl-8 pr-3 text-xs focus:ring-1 focus:ring-[#154212] focus:outline-hidden"
+            />
+          </div>
         </div>
+
         <ul className="divide-y divide-[#c2c9bb]/30">
-          {substitutes.map((item) => (
+          {filteredSubstitutes.map((item) => (
             <li className="flex items-center justify-between gap-3 py-2.5 text-xs" key={item.id}>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                 <span className="font-semibold text-[#154212]">{item.ingredientName}</span>
@@ -198,10 +258,15 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
               )}
             </li>
           ))}
-          {substitutes.length === 0 && <li className="py-2 text-xs text-[#605e5b]">Todavía no hay sustitutos cargados en el catálogo.</li>}
+          {filteredSubstitutes.length === 0 && (
+            <li className="py-4 text-center text-xs text-[#605e5b]">
+              {subSearch ? 'No se encontraron sustitutos que coincidan con la búsqueda.' : 'Todavía no hay sustitutos cargados en el catálogo.'}
+            </li>
+          )}
         </ul>
       </section>
 
+      {/* REGISTRO DE SUSTITUTO (ADMIN) */}
       {authSession?.role === 'admin' && (
         <form className="grid gap-3 rounded-xl border border-[#c2c9bb]/50 bg-white p-5 sm:grid-cols-2" onSubmit={(event) => void addSubstitute(event)}>
           <div className="sm:col-span-2 flex items-center gap-2 border-b border-[#f0eded] pb-2">
@@ -211,8 +276,8 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
           <select
             className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
             required
-            value={ingredientId}
-            onChange={(event) => setIngredientId(event.target.value)}
+            value={subOriginalId}
+            onChange={(event) => setSubOriginalId(event.target.value)}
           >
             <option value="">Ingrediente original</option>
             {ingredientes.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
@@ -220,11 +285,11 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
           <select
             className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
             required
-            value={substituteId}
-            onChange={(event) => setSubstituteId(event.target.value)}
+            value={subReplacementId}
+            onChange={(event) => setSubReplacementId(event.target.value)}
           >
             <option value="">Ingrediente sustituto</option>
-            {ingredientes.filter((item) => item.id !== ingredientId).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+            {ingredientes.filter((item) => item.id !== subOriginalId).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
           </select>
           <input
             className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import type { Categoria, Comentario, Dificultad, Ingrediente, Origen, Receta, Usuario } from '../types';
 
 interface Props {
@@ -48,6 +48,30 @@ export default function RecipeDetailModal({
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [text, setText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Atajos de teclado para el Modo Cocina
+  useEffect(() => {
+    if (!isCookingMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        const total = receta.pasos.length;
+        setCurrentStepIndex((prev) => {
+          if (prev < total - 1) return prev + 1;
+          setIsCookingFinished(true);
+          return prev;
+        });
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentStepIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        setIsCookingFinished(false);
+      } else if (e.key === 'Escape') {
+        setIsCookingMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCookingMode, receta.pasos.length]);
 
   const toggleIngredientCheck = (id: string) => {
     setCheckedIngredients((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -403,7 +427,11 @@ export default function RecipeDetailModal({
                 </button>
                 <button
                   className="rounded-xl border border-red-200 px-3.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 transition"
-                  onClick={() => onDeleteRecipe(receta.id)}
+                  onClick={() => {
+                    if (window.confirm(`¿Estás seguro de que deseas eliminar la receta "${receta.plato.nombre}"? Esta acción no se puede deshacer.`)) {
+                      onDeleteRecipe(receta.id);
+                    }
+                  }}
                   type="button"
                 >
                   Eliminar

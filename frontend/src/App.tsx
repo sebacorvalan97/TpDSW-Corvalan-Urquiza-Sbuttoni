@@ -631,6 +631,7 @@ export default function App() {
           }}
           onNavigateCategories={() => navigateTo('recipes')}
           onNavigatePantry={() => navigateTo('substitutes')}
+          onNavigateRanking={() => navigateTo('ranking')}
           authSession={authSession}
           errorMessage={operationError}
         />
@@ -1186,6 +1187,20 @@ export default function App() {
             setIsWizardOpen(false);
             setEditingRecipe(null);
             setCurrentTab('discover');
+          }}
+          onNavigateCategories={() => {
+            setIsWizardOpen(false);
+            setEditingRecipe(null);
+            setCurrentTab('recipes');
+            setTimeout(() => {
+              const el = document.getElementById('categorias-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+          }}
+          onNavigatePantry={() => {
+            setIsWizardOpen(false);
+            setEditingRecipe(null);
+            setCurrentTab('substitutes');
           }}
           onSaveRecipe={handleSaveRecipe}
           onCreateIngredient={handleCreateIngredientFromWizard}

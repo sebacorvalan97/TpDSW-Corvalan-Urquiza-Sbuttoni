@@ -17,6 +17,7 @@ interface Props {
   onSearch?: (query: string) => void;
   onNavigateCategories?: () => void;
   onNavigatePantry?: () => void;
+  onNavigateRanking?: () => void;
   authSession: AuthSession | null;
   errorMessage?: string;
 }
@@ -34,6 +35,7 @@ export default function RecipeDiscover({
   onSearch,
   onNavigateCategories,
   onNavigatePantry,
+  onNavigateRanking,
   authSession,
   errorMessage,
 }: Props) {
@@ -53,8 +55,14 @@ export default function RecipeDiscover({
             <button className="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-container transition-colors duration-200" type="button">
               Descubrir
             </button>
+            <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onNavigateRanking} type="button">
+              Ranking
+            </button>
             <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onNavigateCategories ?? onShowRecipes} type="button">
               Categorías
+            </button>
+            <button className="text-secondary font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={onNavigatePantry} type="button">
+              Despensa
             </button>
           
           </div>
@@ -131,6 +139,10 @@ export default function RecipeDiscover({
             <button className="flex w-full items-center p-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-transform text-left" type="button">
               <span className="material-symbols-outlined mr-3">explore</span>
               <span className="font-label-md">Descubrir</span>
+            </button>
+            <button className="flex w-full items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-left" onClick={onNavigateRanking} type="button">
+              <span className="material-symbols-outlined mr-3 text-amber-600">trophy</span>
+              <span className="font-label-md">Ranking</span>
             </button>
             <button className="flex w-full items-center p-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-left" onClick={onNavigateCategories ?? onShowRecipes} type="button">
               <span className="material-symbols-outlined mr-3">category</span>
@@ -223,13 +235,23 @@ export default function RecipeDiscover({
                   key={receta.id}
                   onClick={() => onSelectRecipe?.(receta)}
                 >
-                  {receta.plato.imagenUrl && (
-                    <img
-                      alt={`Imagen de ${receta.plato.nombre}`}
-                      className="h-48 w-full object-cover"
-                      src={receta.plato.imagenUrl}
-                    />
-                  )}
+                  <div className="relative h-48 w-full overflow-hidden bg-[#f0eded]">
+                    {receta.plato.imagenUrl ? (
+                      <img
+                        alt={`Imagen de ${receta.plato.nombre}`}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        src={receta.plato.imagenUrl}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#154212]/10 to-[#bcf0ae]/30 text-[#154212]">
+                        <span className="material-symbols-outlined text-5xl opacity-40">restaurant</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="p-5">
                     <h2 className="font-headline-md text-xl text-primary">{receta.plato.nombre}</h2>
                     <p className="mt-2 line-clamp-3 text-sm text-on-surface-variant">{receta.plato.descripcion}</p>

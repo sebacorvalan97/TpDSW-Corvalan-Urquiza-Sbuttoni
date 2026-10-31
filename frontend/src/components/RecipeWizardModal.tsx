@@ -21,6 +21,8 @@ interface Props {
   currentUser: Usuario;
   onClose: () => void;
   onNavigateDiscover: () => void;
+  onNavigateCategories?: () => void;
+  onNavigatePantry?: () => void;
   onSaveRecipe: (recipeData: Partial<Receta>) => Promise<void>;
   onCreateIngredient: (nombre: string, unidad: string) => Promise<Ingrediente>;
 }
@@ -103,50 +105,67 @@ export default function RecipeWizardModal(props: Props) {
     ]);
   }
 
-  // Actualiza solo el campo editado en la fila del ingrediente indicado.
-  function actualizarIngrediente(id: string, cambios: Partial<IngredienteDraft>) {
+  // Modifica los valores de una fila concreta manteniendo inmutables a las demás.
+  function actualizarIngrediente(id: string, actualizacion: Partial<IngredienteDraft>) {
     setIngredientes((actuales) =>
       actuales.map((ingrediente) =>
-        ingrediente.id === id ? { ...ingrediente, ...cambios } : ingrediente
+        ingrediente.id === id ? { ...ingrediente, ...actualizacion } : ingrediente
       )
     );
   }
 
-  // Agrega una instrucción vacía; su número se calcula al renderizar la lista.
+  // Quita una fila de ingrediente conservando al menos una para que el usuario no pierda el campo.
+  function eliminarIngrediente(id: string) {
+    if (ingredientes.length === 1) return;
+    setIngredientes((actuales) => actuales.filter((ingrediente) => ingrediente.id !== id));
+  }
+
+  // Agrega una instrucción vacía al final del listado secuencial de pasos.
   function agregarPaso() {
     setPasos((actuales) => [...actuales, { id: createId(), texto: '' }]);
   }
 
-  // Guarda el texto de una instrucción en el estado asociado a su identificador.
+  // Actualiza el texto del paso seleccionado mediante su identificador único.
   function actualizarPaso(id: string, texto: string) {
     setPasos((actuales) =>
       actuales.map((paso) => (paso.id === id ? { ...paso, texto } : paso))
     );
   }
 
-  // Valida el formulario, obtiene o crea ingredientes del catálogo y entrega la receta a App.
+  // Quita un paso de preparación respetando un mínimo de una instrucción obligatoria.
+  function eliminarPaso(id: string) {
+    if (pasos.length === 1) return;
+    setPasos((actuales) => actuales.filter((paso) => paso.id !== id));
+  }
+
+  // Valida los datos requeridos, normaliza nombres, crea ingredientes faltantes y guarda la receta.
   async function guardarReceta(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
     setError('');
 
-    const ingredientesCompletos = ingredientes.filter(
-      (ingrediente) => ingrediente.nombre.trim()
-    );
-    const pasosCompletos = pasos
-      .map((paso) => paso.texto.trim())
-      .filter(Boolean);
+    if (!nombre.trim() || !descripcion.trim()) {
+      setError('Completa el nombre y la descripción de la receta.');
+      return;
+    }
 
-    // Evita guardar una receta que no tenga por lo menos un ingrediente y una instrucción.
-    if (!ingredientesCompletos.length || !pasosCompletos.length) {
-      setError('Agrega al menos un ingrediente y un paso de preparación.');
+    if (!Number.isFinite(duracionMinutos) || duracionMinutos <= 0) {
+      setError('La duración debe ser un número entero mayor que cero.');
       return;
     }
-    const ingredientNames = ingredientesCompletos.map((ingredient) => normalizeText(ingredient.nombre));
-    if (new Set(ingredientNames).size !== ingredientNames.length) {
-      setError('No repitas un ingrediente en la misma receta.');
+
+    const ingredientesCompletos = ingredientes.filter((ingrediente) => ingrediente.nombre.trim());
+    const pasosCompletos = pasos.map((paso) => paso.texto.trim()).filter(Boolean);
+
+    if (ingredientesCompletos.length === 0) {
+      setError('Agrega al menos un ingrediente con nombre.');
       return;
     }
+
+    if (pasosCompletos.length === 0) {
+      setError('Agrega al menos un paso con instrucciones.');
+      return;
+    }
+
     if (ingredientesCompletos.some((ingredient) => ingredient.cantidad.trim() && (!Number.isFinite(Number(ingredient.cantidad)) || Number(ingredient.cantidad) <= 0))) {
       setError('Las cantidades de los ingredientes deben ser mayores que cero.');
       return;
@@ -218,319 +237,475 @@ export default function RecipeWizardModal(props: Props) {
   }
 
   return (
-    <div>
-      {/* Cabecera del asistente: identidad de la aplicación y navegación hacia Descubrir. */}
-<nav className="bg-surface-bright dark:bg-surface-dim shadow-sm docked full-width top-0 z-50 fixed w-full border-none">
-<div className="flex justify-between items-center w-full px-margin-desktop py-md max-w-7xl mx-auto z-50">
-<div className="font-display-lg text-display-lg text-primary dark:text-primary-fixed-dim">El Bodegón Digital</div>
-<div className="hidden md:flex space-x-8 items-center">
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Mis Recetas</a>
-<button className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" onClick={props.onNavigateDiscover} type="button">Descubrir</button>
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Categorías</a>
-<a className="text-secondary dark:text-secondary-fixed-dim font-medium pb-1 hover:text-primary-container transition-colors duration-200" href="#">Mi Despensa</a>
-</div>
-<div className="flex items-center space-x-4">
-<div className="relative hidden sm:block">
-<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-<input className="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-body-md focus:ring-1 focus:ring-primary w-64" placeholder="Buscar ingredientes..." type="text"/>
-</div>
-<img className="w-10 h-10 rounded-full border-2 border-primary object-cover" data-alt="A professional chef avatar profile photo in a soft-lit, minimalist kitchen setting. The image is clean and bright, reflecting a high-end culinary professional aesthetic with warm neutral tones and subtle wood textures in the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsQOeayrcUgM9iHTQm5F8OfCM7KkUPk8j0A0lELVxxEPCgkK-a1nbpaTDauovqzKMX312Qyk-O_EuvttVqF3Mut9IfW_AAniuU99nA_rrG_tCYtVgvWdAON59A2aTcxA8zs9L1pii4FSlYNnDCdvjShxLa9-hvUbVGEEioidG4lXCFHsIWNy8rRYjGuiA7nG55x-JBlBKDacD4KIp8nrF5_HCqyy1rJeS9N1xjlS-80ZItT2Xz2eh9"/>
-</div>
-</div>
-</nav>
-{/* Contenedor de la pantalla: separa el menú lateral del formulario principal. */}
-<div className="flex pt-32 pb-24 lg:pt-24 lg:pb-0">
-{/* Menú lateral de escritorio con el perfil y los accesos de navegación. */}
-<aside className="hidden lg:flex flex-col h-full py-lg px-md space-y-base bg-surface-container-low dark:bg-surface-container-high border-r border-outline-variant h-full w-64 left-0 fixed">
-<div className="px-2 pb-6">
-<div className="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim">Mi Cocina</div>
-<div className="text-label-md text-on-surface-variant">Chef Maestro</div>
-</div>
-<nav className="flex-1 space-y-2">
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
-<span className="material-symbols-outlined">book</span>
-<span className="font-label-md">Mis Recetas</span>
-</a>
-<button className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" onClick={props.onNavigateDiscover} type="button">
-<span className="material-symbols-outlined">explore</span>
-<span className="font-label-md">Descubrir</span>
-</button>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
-<span className="material-symbols-outlined">category</span>
-<span className="font-label-md">Categorías</span>
-</a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
-<span className="material-symbols-outlined">kitchen</span>
-<span className="font-label-md">Mi Despensa</span>
-</a>
-</nav>
-<div className="pt-6 border-t border-outline-variant space-y-2">
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
-<span className="material-symbols-outlined">settings</span>
-<span className="font-label-md">Ajustes</span>
-</a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
-<span className="material-symbols-outlined">help</span>
-<span className="font-label-md">Soporte</span>
-</a>
-</div>
-</aside>
-{/* Área central que presenta el encabezado y el formulario de la receta. */}
-<main className="flex-1 lg:ml-64 px-4 md:px-gutter max-w-5xl mx-auto w-full">
-{/* Título y descripción para indicar el propósito del formulario. */}
-<div className="mb-10">
-<h1 className="font-display-lg text-display-lg text-primary mb-2">Crear Nueva Receta</h1>
-<p className="text-body-lg text-secondary">Documenta tu obra maestra culinaria con precisión y calidez.</p>
-</div>
-{/* Módulo: formulario dividido en secciones; su envío ejecuta las validaciones y el guardado. */}
-<form className="space-y-12 pb-32" id="recipeForm" onSubmit={guardarReceta}>
-{error && (
-  <div className="bg-red-50 border-2 border-red-300 text-red-800 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-in fade-in" role="alert">
-    <span className="material-symbols-outlined text-red-600 shrink-0 mt-0.5">error</span>
-    <div className="flex-1">
-      <p className="font-bold text-sm">No se pudo guardar la receta</p>
-      <p className="text-sm mt-0.5">{error}</p>
+    <div className="min-h-screen bg-[#fbf9f8] text-[#1b1c1c]">
+      {/* Cabecera del asistente: identidad de la aplicación y navegación fluida */}
+      <nav className="bg-white/95 backdrop-blur-md shadow-xs docked top-0 z-50 fixed w-full border-b border-[#c2c9bb]/40">
+        <div className="flex justify-between items-center w-full px-4 md:px-8 py-3.5 max-w-7xl mx-auto z-50">
+          <div
+            onClick={props.onClose}
+            className="font-serif text-2xl font-bold text-[#154212] cursor-pointer"
+          >
+            El Bodegón Digital
+          </div>
+          <div className="hidden md:flex space-x-6 items-center">
+            <button
+              className="text-[#42493e] font-semibold text-xs pb-0.5 hover:text-[#154212] transition-colors"
+              onClick={props.onClose}
+              type="button"
+            >
+              Recetas
+            </button>
+            <button
+              className="text-[#42493e] font-semibold text-xs pb-0.5 hover:text-[#154212] transition-colors"
+              onClick={props.onNavigateDiscover}
+              type="button"
+            >
+              Descubrir
+            </button>
+            <button
+              className="text-[#42493e] font-semibold text-xs pb-0.5 hover:text-[#154212] transition-colors"
+              onClick={props.onNavigateCategories ?? props.onClose}
+              type="button"
+            >
+              Categorías
+            </button>
+            <button
+              className="text-[#42493e] font-semibold text-xs pb-0.5 hover:text-[#154212] transition-colors"
+              onClick={props.onNavigatePantry ?? props.onClose}
+              type="button"
+            >
+              Mi Despensa
+            </button>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={props.onClose}
+              type="button"
+              className="flex items-center gap-1 text-xs font-semibold text-[#42493e] hover:text-[#154212] px-3 py-1.5 rounded-lg border border-[#c2c9bb]/60 hover:bg-[#f6f3f2] transition"
+            >
+              <span className="material-symbols-outlined text-base">close</span>
+              <span>Cerrar</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Contenedor principal con panel lateral y formulario */}
+      <div className="flex pt-20 pb-28 lg:pt-20 lg:pb-0">
+        {/* Menú lateral de escritorio */}
+        <aside className="hidden lg:flex flex-col h-[calc(100vh-80px)] w-64 left-0 fixed py-6 px-4 space-y-4 bg-white border-r border-[#c2c9bb]/40">
+          <div className="px-2 pb-4 border-b border-[#f0eded]">
+            <div className="font-serif text-xl font-bold text-[#154212]">
+              {recipe ? 'Editar Receta' : 'Nueva Receta'}
+            </div>
+            <div className="text-xs text-[#72796e] mt-0.5">
+              {recipe ? `Modificando #${recipe.id}` : 'Creación paso a paso'}
+            </div>
+          </div>
+          <nav className="flex-1 space-y-1.5">
+            <button
+              className="flex w-full items-center space-x-3 px-3.5 py-2.5 text-xs font-semibold text-[#42493e] hover:bg-[#f6f3f2] hover:text-[#154212] transition-colors rounded-xl text-left"
+              onClick={props.onClose}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-lg">book</span>
+              <span>Mis Recetas</span>
+            </button>
+            <button
+              className="flex w-full items-center space-x-3 px-3.5 py-2.5 text-xs font-semibold text-[#42493e] hover:bg-[#f6f3f2] hover:text-[#154212] transition-colors rounded-xl text-left"
+              onClick={props.onNavigateDiscover}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-lg">explore</span>
+              <span>Descubrir</span>
+            </button>
+            <button
+              className="flex w-full items-center space-x-3 px-3.5 py-2.5 text-xs font-semibold text-[#42493e] hover:bg-[#f6f3f2] hover:text-[#154212] transition-colors rounded-xl text-left"
+              onClick={props.onNavigateCategories ?? props.onClose}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-lg">category</span>
+              <span>Categorías</span>
+            </button>
+            <button
+              className="flex w-full items-center space-x-3 px-3.5 py-2.5 text-xs font-semibold text-[#42493e] hover:bg-[#f6f3f2] hover:text-[#154212] transition-colors rounded-xl text-left"
+              onClick={props.onNavigatePantry ?? props.onClose}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-lg">kitchen</span>
+              <span>Mi Despensa</span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* Formulario central */}
+        <main className="flex-1 lg:ml-64 px-4 md:px-8 max-w-4xl mx-auto w-full py-6">
+          <div className="mb-6">
+            <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#154212]">
+              {recipe ? 'Editar Receta Culinaria' : 'Crear Nueva Receta'}
+            </h1>
+            <p className="text-xs text-[#605e5b] mt-1">
+              Documenta tu plato con ingredientes claros, orígenes e instrucciones precisas.
+            </p>
+          </div>
+
+          <form className="space-y-6 pb-28" id="recipeForm" onSubmit={guardarReceta}>
+            {error && (
+              <div className="bg-red-50 border border-red-300 text-red-800 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-in fade-in" role="alert">
+                <span className="material-symbols-outlined text-red-600 shrink-0 mt-0.5">error</span>
+                <div className="flex-1">
+                  <p className="font-bold text-xs">No se pudo guardar la receta</p>
+                  <p className="text-xs mt-0.5">{error}</p>
+                </div>
+                <button
+                  className="text-red-500 hover:text-red-700 text-xs font-bold"
+                  onClick={() => setError('')}
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Sección 1: Detalles Esenciales */}
+            <section className="bg-white p-6 rounded-2xl shadow-xs border border-[#c2c9bb]/50 space-y-5">
+              <div className="flex items-center space-x-3 border-b border-[#f0eded] pb-3">
+                <div className="bg-[#154212] text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs">1</div>
+                <h2 className="font-serif text-lg font-bold text-[#154212]">Detalles Esenciales</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#154212] mb-1">Nombre de la Receta *</label>
+                    <input
+                      className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3.5 py-2.5 text-xs text-[#1b1c1c] focus:border-[#154212] focus:ring-1 focus:ring-[#154212] transition-all"
+                      placeholder="ej. Milanesas Napolitanas Caseras"
+                      type="text"
+                      value={nombre}
+                      onChange={(event) => setNombre(event.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#154212] mb-1">Descripción *</label>
+                    <textarea
+                      className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3.5 py-2.5 text-xs text-[#1b1c1c] focus:border-[#154212] focus:ring-1 focus:ring-[#154212] transition-all"
+                      placeholder="Describe brevemente este plato tradicional..."
+                      rows={3}
+                      value={descripcion}
+                      onChange={(event) => setDescripcion(event.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#154212] mb-1">Duración Total (minutos) *</label>
+                    <input
+                      className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3.5 py-2.5 text-xs text-[#1b1c1c]"
+                      min="1"
+                      required
+                      type="number"
+                      value={duracionMinutos}
+                      onChange={(event) => setDuracionMinutos(Number(event.target.value))}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-[#154212] mb-1">Categoría *</label>
+                      <select
+                        className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c]"
+                        value={categoriaId}
+                        onChange={(event) => setCategoriaId(event.target.value)}
+                        required
+                      >
+                        <option value="">Seleccionar categoría</option>
+                        {props.categorias.map((categoria) => (
+                          <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#154212] mb-1">Origen / Región *</label>
+                      <select
+                        className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c]"
+                        value={origenId}
+                        onChange={(event) => setOrigenId(event.target.value)}
+                        required
+                      >
+                        <option value="">Seleccionar origen</option>
+                        {props.origenes.map((origen) => (
+                          <option key={origen.id} value={origen.id}>
+                            {origen.bandera ? `${origen.bandera} ` : ''}{origen.pais}{origen.nombre ? ` (${origen.nombre})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#154212] mb-1">Dificultad *</label>
+                    <div className="flex space-x-2">
+                      {props.dificultades.map((dificultad) => {
+                        const isSelected = dificultadId === dificultad.id;
+                        return (
+                          <button
+                            key={dificultad.id}
+                            className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'bg-[#154212] text-white border-[#154212] shadow-xs'
+                                : 'bg-[#fbf9f8] text-[#42493e] border-[#c2c9bb] hover:bg-[#f6f3f2]'
+                            }`}
+                            onClick={() => setDificultadId(dificultad.id)}
+                            type="button"
+                          >
+                            {dificultad.nivel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Foto de portada con vista previa en vivo */}
+                <div className="flex flex-col">
+                  <label className="block text-xs font-bold text-[#154212] mb-1">Foto de Portada (opcional)</label>
+                  <div className="flex-1 min-h-[260px] border-2 border-dashed border-[#c2c9bb] rounded-2xl flex flex-col items-center justify-center bg-[#fbf9f8] p-4 text-center">
+                    {imagenUrl.trim() ? (
+                      <div className="flex flex-col items-center justify-center w-full">
+                        <img
+                          src={imagenUrl}
+                          alt="Vista previa del plato"
+                          className="max-h-40 w-full object-cover rounded-xl shadow-xs border border-[#c2c9bb]/60 mb-2"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setImagenUrl('')}
+                          className="text-xs text-red-700 font-semibold hover:underline"
+                        >
+                          Quitar foto
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-4xl text-[#72796e] mb-2">add_a_photo</span>
+                        <p className="text-xs text-[#72796e]">Pega abajo la URL pública de la foto del plato</p>
+                      </>
+                    )}
+                    <input
+                      className="mt-3 w-full bg-white border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-1 focus:ring-[#154212]"
+                      placeholder="https://ejemplo.com/foto-receta.jpg"
+                      type="url"
+                      value={imagenUrl}
+                      onChange={(event) => setImagenUrl(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Sección 2: Ingredientes */}
+            <section className="bg-white p-6 rounded-2xl shadow-xs border border-[#c2c9bb]/50 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#f0eded] pb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-[#154212] text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs">2</div>
+                  <h2 className="font-serif text-lg font-bold text-[#154212]">Ingredientes *</h2>
+                </div>
+                <button
+                  className="flex items-center space-x-1.5 text-[#154212] font-bold text-xs hover:bg-[#154212]/10 px-3 py-1.5 rounded-lg transition"
+                  onClick={agregarIngrediente}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base">add_circle</span>
+                  <span>Añadir Ingrediente</span>
+                </button>
+              </div>
+
+              <p className="text-xs text-[#72796e] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-[#154212]">info</span>
+                Escribe para autocompletar con ingredientes existentes de la despensa.
+              </p>
+
+              <datalist id="catalogo-ingredientes-list">
+                {props.ingredientesCatalogo.map((item) => (
+                  <option key={item.id} value={item.nombre}>
+                    {item.nombre} ({item.unidadMedidaDefecto})
+                  </option>
+                ))}
+              </datalist>
+
+              <div className="space-y-3">
+                {ingredientes.map((ingrediente) => (
+                  <div className="flex items-center gap-2" key={ingrediente.id}>
+                    <input
+                      className="flex-1 bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-1 focus:ring-[#154212]"
+                      list="catalogo-ingredientes-list"
+                      placeholder="Nombre del ingrediente (ej. Huevo)"
+                      type="text"
+                      value={ingrediente.nombre}
+                      onChange={(event) => {
+                        const nuevoNombre = event.target.value;
+                        const norm = normalizeText(nuevoNombre);
+                        const match = props.ingredientesCatalogo.find((item) => normalizeText(item.nombre) === norm);
+                        actualizarIngrediente(ingrediente.id, {
+                          nombre: nuevoNombre,
+                          ...(match && !ingrediente.unidad ? { unidad: match.unidadMedidaDefecto } : {}),
+                        });
+                      }}
+                      required
+                    />
+                    <input
+                      className="w-20 bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-2.5 py-2 text-xs text-[#1b1c1c] text-center"
+                      min="0.01"
+                      placeholder="Cant."
+                      required
+                      step="any"
+                      type="number"
+                      value={ingrediente.cantidad}
+                      onChange={(event) => actualizarIngrediente(ingrediente.id, { cantidad: event.target.value })}
+                    />
+                    <select
+                      className="w-28 bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-2.5 py-2 text-xs text-[#1b1c1c]"
+                      value={ingrediente.unidad}
+                      onChange={(event) => actualizarIngrediente(ingrediente.id, { unidad: event.target.value })}
+                    >
+                      {UNIDADES_MEDIDA.map((unidad) => (
+                        <option key={unidad.value} value={unidad.value}>{unidad.label}</option>
+                      ))}
+                    </select>
+                    {ingredientes.length > 1 && (
+                      <button
+                        className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition"
+                        onClick={() => eliminarIngrediente(ingrediente.id)}
+                        type="button"
+                        title="Eliminar fila"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Sección 3: Pasos de Preparación */}
+            <section className="bg-white p-6 rounded-2xl shadow-xs border border-[#c2c9bb]/50 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#f0eded] pb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-[#154212] text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs">3</div>
+                  <h2 className="font-serif text-lg font-bold text-[#154212]">Instrucciones Paso a Paso *</h2>
+                </div>
+                <button
+                  className="flex items-center space-x-1.5 text-[#154212] font-bold text-xs hover:bg-[#154212]/10 px-3 py-1.5 rounded-lg transition"
+                  onClick={agregarPaso}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base">add_circle</span>
+                  <span>Añadir Paso</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {pasos.map((paso, index) => (
+                  <div className="flex items-start gap-2.5" key={paso.id}>
+                    <span className="font-bold text-xs text-[#154212] bg-[#bcf0ae]/40 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-2">
+                      {index + 1}
+                    </span>
+                    <textarea
+                      className="flex-1 bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-1 focus:ring-[#154212]"
+                      placeholder={`Describe el paso ${index + 1}...`}
+                      rows={2}
+                      value={paso.texto}
+                      onChange={(event) => actualizarPaso(paso.id, event.target.value)}
+                      required
+                    />
+                    {pasos.length > 1 && (
+                      <button
+                        className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition mt-1"
+                        onClick={() => eliminarPaso(paso.id)}
+                        type="button"
+                        title="Eliminar paso"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Barra fija inferior con Guardar / Cancelar */}
+            <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-[#c2c9bb]/40 px-6 py-3.5 flex items-center justify-between z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+              <div className="flex-1 mr-4 min-w-0">
+                {error ? (
+                  <p className="text-xs text-red-700 truncate font-medium">{error}</p>
+                ) : (
+                  <p className="text-xs text-[#72796e] hidden sm:block">Todos los campos con (*) son obligatorios.</p>
+                )}
+              </div>
+              <div className="flex space-x-3 shrink-0">
+                <button
+                  className="px-4 py-2 rounded-xl border border-[#c2c9bb] text-[#42493e] text-xs font-bold hover:bg-[#f6f3f2] transition-all"
+                  onClick={props.onClose}
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="px-6 py-2 rounded-xl bg-[#154212] text-white text-xs font-bold shadow-xs hover:bg-[#2d5a27] active:scale-95 transition-all disabled:opacity-60 flex items-center gap-1.5"
+                  disabled={isSaving}
+                  type="submit"
+                >
+                  {isSaving && <span className="material-symbols-outlined text-xs animate-spin">progress_activity</span>}
+                  <span>{isSaving ? 'Guardando...' : (recipe ? 'Guardar Cambios' : 'Guardar Receta')}</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </main>
+      </div>
+
+      {/* Navegación inferior móvil */}
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-[#e4e2e1]">
+        <button
+          className="flex flex-col items-center justify-center text-[#605e5b]"
+          onClick={props.onClose}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-xl">menu_book</span>
+          <span className="text-[10px]">Recetas</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-center text-[#605e5b]"
+          onClick={props.onNavigateDiscover}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-xl">explore</span>
+          <span className="text-[10px]">Descubrir</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-center text-[#605e5b]"
+          onClick={props.onNavigateCategories ?? props.onClose}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-xl">grid_view</span>
+          <span className="text-[10px]">Categorías</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-center text-[#605e5b]"
+          onClick={props.onNavigatePantry ?? props.onClose}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-xl">kitchen</span>
+          <span className="text-[10px]">Despensa</span>
+        </button>
+      </nav>
     </div>
-    <button
-      className="text-red-500 hover:text-red-700 text-sm font-bold"
-      onClick={() => setError('')}
-      type="button"
-    >
-      ✕
-    </button>
-  </div>
-)}
-{/* Sección 1: nombre, descripción, categoría, origen, dificultad e imagen de portada. */}
-<section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-variant/20">
-<div className="flex items-center space-x-4 mb-8">
-<div className="bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center font-bold">1</div>
-<h2 className="font-headline-md text-headline-md text-primary">Detalles Esenciales</h2>
-</div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-{/* Campos generales del plato y selector visual del nivel de dificultad. */}
-<div className="space-y-6">
-<div className="group">
-<label className="block text-label-md text-primary mb-2">Nombre de la Receta *</label>
-<input className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all" placeholder="ej. Costillas Estofadas de la Abuela" type="text" value={nombre} onChange={(event) => setNombre(event.target.value)} required/>
-</div>
-<div>
-<label className="block text-label-md text-primary mb-2">Descripción *</label>
-<textarea className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all" placeholder="Describe brevemente el alma de este plato..." rows={4} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} required></textarea>
-</div>
-<div>
-<label className="block text-label-md text-primary mb-2">Duración (minutos) *</label>
-<input className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" min="1" required type="number" value={duracionMinutos} onChange={(event) => setDuracionMinutos(Number(event.target.value))}/>
-</div>
-<div className="grid grid-cols-2 gap-4">
-<div>
-<label className="block text-label-md text-primary mb-2">Categoría *</label>
-<select className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" value={categoriaId} onChange={(event) => setCategoriaId(event.target.value)} required>
-<option value="">Seleccionar categoría</option>
-{props.categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
-</select>
-</div>
-<div>
-<label className="block text-label-md text-primary mb-2">Origen / Región *</label>
-<select className="w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" value={origenId} onChange={(event) => setOrigenId(event.target.value)} required>
-<option value="">Seleccionar origen</option>
-{props.origenes.map((origen) => <option key={origen.id} value={origen.id}>{origen.pais}</option>)}
-</select>
-</div>
-</div>
-<div>
-<label className="block text-label-md text-primary mb-2 font-medium">Dificultad *</label>
-<div className="flex space-x-2">
-{props.dificultades.map((dificultad) => {
-  const isSelected = dificultadId === dificultad.id;
-  return (
-    <button
-      className={`flex-1 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all ${
-        isSelected
-          ? 'bg-[#154212] text-white border-[#154212] shadow-sm'
-          : 'bg-white text-[#42493e] border-[#c2c9bb] hover:bg-[#f6f3f2]'
-      }`}
-      key={dificultad.id}
-      onClick={() => setDificultadId(dificultad.id)}
-      type="button"
-    >
-      {dificultad.nivel}
-    </button>
   );
-})}
-</div>
-</div>
-</div>
-{/* Campo para ingresar la URL de la imagen que se usará como portada. */}
-<div className="flex flex-col h-full">
-<label className="block text-label-md text-primary mb-2">Foto de Portada (opcional)</label>
-<div className="flex-1 min-h-[300px] border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-all group p-6 text-center">
-<span className="material-symbols-outlined text-4xl text-outline mb-4 group-hover:scale-110 transition-transform">add_a_photo</span>
-<p className="font-label-md text-primary">URL de la foto de portada</p>
-<input className="mt-3 w-full bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md" placeholder="https://..." type="url" value={imagenUrl} onChange={(event) => setImagenUrl(event.target.value)}/>
-</div>
-</div>
-</div>
-</section>
-{/* Sección 2: ingredientes editables; cada fila guarda nombre, cantidad y unidad en estado React. */}
-<section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-variant/20">
-<div className="flex items-center justify-between mb-4">
-<div className="flex items-center space-x-4">
-<div className="bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center font-bold">2</div>
-<h2 className="font-headline-md text-headline-md text-primary">Ingredientes *</h2>
-</div>
-<button className="flex items-center space-x-2 text-primary font-label-md hover:opacity-80 transition-opacity" onClick={agregarIngrediente} type="button">
-<span className="material-symbols-outlined">add_circle</span>
-<span className="">Añadir Elemento</span>
-</button>
-</div>
-<p className="text-xs text-secondary mb-6 flex items-center gap-1.5">
-<span className="material-symbols-outlined text-sm text-[#154212]">info</span>
-Escribe para autocompletar con ingredientes existentes de la despensa. Los administradores pueden añadir nuevos ingredientes directamente.
-</p>
-
-{/* Datalist para sugerencias de autocompletado nativo */}
-<datalist id="catalogo-ingredientes-list">
-{props.ingredientesCatalogo.map((item) => (
-  <option key={item.id} value={item.nombre}>
-    {item.nombre} ({item.unidadMedidaDefecto})
-  </option>
-))}
-</datalist>
-
-<div className="space-y-4" id="ingredientsList">
-{ingredientes.map((ingrediente) => (
-<div className="flex items-center space-x-3 ingredient-row animate-in fade-in duration-300" key={ingrediente.id}>
-<input
-  className="flex-1 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md focus:border-primary transition-all"
-  list="catalogo-ingredientes-list"
-  placeholder="Nombre del ingrediente (ej. Huevo)"
-  type="text"
-  value={ingrediente.nombre}
-  onChange={(event) => {
-    const nuevoNombre = event.target.value;
-    const norm = normalizeText(nuevoNombre);
-    const match = props.ingredientesCatalogo.find((item) => normalizeText(item.nombre) === norm);
-    actualizarIngrediente(ingrediente.id, {
-      nombre: nuevoNombre,
-      ...(match && !ingrediente.unidad ? { unidad: match.unidadMedidaDefecto } : {}),
-    });
-  }}
-  required
-/>
-<input
-  className="w-24 bg-white border border-outline-variant rounded-lg px-4 py-3 font-body-md text-center"
-  min="0.1"
-  placeholder="Cant."
-  step="any"
-  type="number"
-  value={ingrediente.cantidad}
-  onChange={(event) => actualizarIngrediente(ingrediente.id, { cantidad: event.target.value })}
-  required
-/>
-<select
-  className="w-36 bg-white border border-outline-variant rounded-lg px-3 py-3 font-body-md text-sm"
-  value={ingrediente.unidad}
-  onChange={(event) => actualizarIngrediente(ingrediente.id, { unidad: event.target.value })}
->
-{UNIDADES_MEDIDA.map((u) => (
-  <option key={u.value} value={u.value}>
-    {u.label}
-  </option>
-))}
-</select>
-<button aria-label="Eliminar ingrediente" className="p-2 text-secondary hover:text-error transition-colors" onClick={() => setIngredientes((actuales) => actuales.length > 1 ? actuales.filter((item) => item.id !== ingrediente.id) : actuales)} type="button">
-<span className="material-symbols-outlined">delete</span>
-</button>
-</div>
-))}
-</div>
-</section>
-{/* Sección 3: pasos editables; se numeran según el orden actual y pueden quitarse individualmente. */}
-<section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-variant/20">
-<div className="flex items-center justify-between mb-8">
-<div className="flex items-center space-x-4">
-<div className="bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center font-bold">3</div>
-<h2 className="font-headline-md text-headline-md text-primary">Instrucciones *</h2>
-</div>
-<button className="flex items-center space-x-2 text-primary font-label-md hover:opacity-80 transition-opacity" onClick={agregarPaso} type="button">
-<span className="material-symbols-outlined">add_circle</span>
-<span className="">Añadir Paso</span>
-</button>
-</div>
-<div className="space-y-6" id="stepsList">
-{pasos.map((paso, index) => (
-<div className="flex space-x-4 step-row items-start group" key={paso.id}>
-<div className="mt-4 flex flex-col items-center">
-<div className="w-8 h-8 rounded-full border-2 border-outline-variant flex items-center justify-center text-label-sm text-secondary font-bold group-focus-within:border-primary group-focus-within:text-primary transition-colors">{index + 1}</div>
-<div className="w-px h-full bg-outline-variant/30 mt-2"></div>
-</div>
-<div className="flex-1 bg-white border border-outline-variant rounded-xl p-4 transition-shadow focus-within:shadow-md">
-<textarea className="w-full border-none p-0 resize-none font-body-md focus:ring-0" placeholder="Describe este paso..." rows={2} value={paso.texto} onChange={(event) => actualizarPaso(paso.id, event.target.value)} required></textarea>
-<div className="flex justify-end mt-2 pt-2 border-t border-outline-variant/10">
-<button className="text-label-sm text-secondary flex items-center hover:text-error transition-colors" onClick={() => setPasos((actuales) => actuales.length > 1 ? actuales.filter((item) => item.id !== paso.id) : actuales)} type="button">
-<span className="material-symbols-outlined text-sm mr-1">delete</span> Eliminar
-                                    </button>
-</div>
-</div>
-</div>
-))}
-</div>
-</section>
-{/* Acciones fijas del formulario: cancelar, mostrar validaciones y guardar los datos. */}
-<div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-outline-variant/30 px-6 py-4 flex items-center justify-between z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-<div className="flex-1 mr-4 min-w-0">
-{error ? (
-  <div className="flex items-center gap-2 text-red-700 text-xs md:text-sm font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2 truncate">
-    <span className="material-symbols-outlined text-base text-red-600 shrink-0">error</span>
-    <span className="truncate">{error}</span>
-  </div>
-) : (
-  <p className="text-label-sm text-secondary hidden md:block">Todos los campos con (*) son obligatorios.</p>
-)}
-</div>
-<div className="flex space-x-3 shrink-0">
-<button className="px-6 py-2.5 rounded-lg border border-outline-variant text-primary font-bold hover:bg-surface-container-low transition-all" onClick={props.onClose} type="button">Cancelar</button>
-<button className="px-8 py-2.5 rounded-lg bg-[#154212] text-white font-bold shadow-md hover:bg-[#1c5518] active:scale-95 transition-all disabled:cursor-wait disabled:opacity-60 flex items-center gap-2" disabled={isSaving} type="submit">
-  {isSaving && <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>}
-  {isSaving ? 'Guardando...' : 'Guardar Receta'}
-</button>
-</div>
-</div>
-</form>
-</main>
-</div>
-{/* Navegación inferior móvil; sus accesos de sección están disponibles en pantallas pequeñas. */}
-<nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest dark:bg-surface-container shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-xl border-none">
-<div className="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim">
-<span className="material-symbols-outlined">menu_book</span>
-<span className="font-label-sm text-label-sm-mobile">Recetas</span>
-</div>
-<button className="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim" onClick={props.onNavigateDiscover} type="button">
-<span className="material-symbols-outlined">search</span>
-<span className="font-label-sm text-label-sm-mobile">Descubrir</span>
-</button>
-<div className="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1">
-<span className="material-symbols-outlined">add</span>
-<span className="font-label-sm text-label-sm-mobile">Crear</span>
-</div>
-<div className="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim">
-<span className="material-symbols-outlined">grid_view</span>
-<span className="font-label-sm text-label-sm-mobile">Categorías</span>
-</div>
-<div className="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim">
-<span className="material-symbols-outlined">inventory_2</span>
-<span className="font-label-sm text-label-sm-mobile">Despensa</span>
-</div>
-</nav>
-    </div>
-  );
-
-
-
-
-
-
-
-
-
 }
