@@ -281,6 +281,7 @@ export default function App() {
     const recipeId = Number(selectedRecipe.id.replace(/^rec-/, ''));
     void userDataService.getComments(recipeId).then((apiComments) => {
       if (!isMounted) return;
+      setOperationError('');
       setComentarios(apiComments.map((comment) => toUiComment(comment, recipeId)));
     }).catch((cause: unknown) => {
       if (isMounted) setOperationError(cause instanceof Error ? cause.message : 'No se pudieron cargar los comentarios.');
