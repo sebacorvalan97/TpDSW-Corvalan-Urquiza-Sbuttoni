@@ -36,8 +36,33 @@ app.use('/api/recipes-ingredientes', recetaIngredienteRouter);
 
 app.use(errorHandler);
 
+async function ensureUserFeatureTables(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS \`favorito\` (
+      \`idCuenta\` INTEGER NOT NULL,
+      \`idReceta\` INTEGER NOT NULL,
+      \`fechaAlta\` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+      INDEX \`idx_favorito_receta\`(\`idReceta\`),
+      PRIMARY KEY (\`idCuenta\`, \`idReceta\`),
+      CONSTRAINT \`favorito_idCuenta_fkey\` FOREIGN KEY (\`idCuenta\`) REFERENCES \`usuario\`(\`idCuenta\`) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT \`favorito_idReceta_fkey\` FOREIGN KEY (\`idReceta\`) REFERENCES \`receta\`(\`idReceta\`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  `);
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS \`comentario_like\` (
+      \`idCuenta\` INTEGER NOT NULL,
+      \`idComentario\` INTEGER NOT NULL,
+      INDEX \`idx_comentario_like_comentario\`(\`idComentario\`),
+      PRIMARY KEY (\`idCuenta\`, \`idComentario\`),
+      CONSTRAINT \`comentario_like_idCuenta_fkey\` FOREIGN KEY (\`idCuenta\`) REFERENCES \`usuario\`(\`idCuenta\`) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT \`comentario_like_idComentario_fkey\` FOREIGN KEY (\`idComentario\`) REFERENCES \`comentario\`(\`idComentario\`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  `);
+}
+
 async function startServer(): Promise<void> {
   await prisma.$connect();
+  await ensureUserFeatureTables();
   await adminRepository.ensureInitialAdmin();
 
   app.listen(8080, () => {
