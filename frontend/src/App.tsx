@@ -292,6 +292,7 @@ export default function App() {
   }, [selectedRecipe?.id, authSession]);
 
   const navigateTo = (tab: AppTab) => {
+    setOperationError('');
     if (tab === 'create') {
       if (!authSession) {
         openAuth('user');
@@ -585,6 +586,20 @@ export default function App() {
         setEditingRecipe(null);
         setCurrentTab('discover');
       }}
+      onNavigateCategories={() => {
+        setIsWizardOpen(false);
+        setEditingRecipe(null);
+        setCurrentTab('recipes');
+        setTimeout(() => {
+          const el = document.getElementById('categorias-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      }}
+      onNavigatePantry={() => {
+        setIsWizardOpen(false);
+        setEditingRecipe(null);
+        setCurrentTab('substitutes');
+      }}
       onSaveRecipe={handleSaveRecipe}
       onCreateIngredient={handleCreateIngredientFromWizard}
     />
@@ -640,7 +655,20 @@ export default function App() {
 
         {/* Center / Main Content Canvas */}
         <main className="flex-1 min-w-0 space-y-8 py-6">
-          {operationError && <p className="rounded-lg bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]" role="alert">{operationError}</p>}
+          {operationError && (
+            <div className="flex items-center justify-between rounded-xl bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a] shadow-xs" role="alert">
+              <span>{operationError}</span>
+              <button
+                type="button"
+                onClick={() => setOperationError('')}
+                className="ml-3 inline-flex text-[#93000a] hover:text-black font-bold text-sm px-1.5 py-0.5 rounded hover:bg-[#ffdad6]/80 transition-colors"
+                title="Cerrar mensaje"
+                aria-label="Cerrar mensaje"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           
           {/* VIEW: DISCOVER / RECIPES / FAVORITES */}
           {(currentTab === 'recipes' || currentTab === 'favorites') && (
@@ -1097,7 +1125,10 @@ export default function App() {
           todosIngredientes={ingredientes}
           comentarios={comentarios}
           currentUser={currentUser}
-          onClose={() => setSelectedRecipe(null)}
+          onClose={() => {
+            setSelectedRecipe(null);
+            setOperationError('');
+          }}
           onToggleFavorite={handleToggleFavorite}
           onAddComment={handleAddComment}
           onLikeComment={handleLikeComment}
@@ -1116,43 +1147,6 @@ export default function App() {
           errorMessage={operationError}
           canEdit={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
           canDelete={Boolean(authSession && (authSession.role === 'admin' || selectedRecipe.creadorUsuarioId === currentUser.id))}
-        />
-      )}
-
-      {/* MODAL: RECIPE WIZARD (Create / Edit Multi-Step Form) */}
-      {isWizardOpen && (
-        <RecipeWizardModal
-          initialRecipe={editingRecipe}
-          categorias={categorias}
-          origenes={origenes}
-          dificultades={dificultades}
-          ingredientesCatalogo={ingredientes}
-          currentUser={currentUser}
-          onClose={() => {
-            setIsWizardOpen(false);
-            setEditingRecipe(null);
-          }}
-          onNavigateDiscover={() => {
-            setIsWizardOpen(false);
-            setEditingRecipe(null);
-            setCurrentTab('discover');
-          }}
-          onNavigateCategories={() => {
-            setIsWizardOpen(false);
-            setEditingRecipe(null);
-            setCurrentTab('recipes');
-            setTimeout(() => {
-              const el = document.getElementById('categorias-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }, 50);
-          }}
-          onNavigatePantry={() => {
-            setIsWizardOpen(false);
-            setEditingRecipe(null);
-            setCurrentTab('substitutes');
-          }}
-          onSaveRecipe={handleSaveRecipe}
-          onCreateIngredient={handleCreateIngredientFromWizard}
         />
       )}
 
