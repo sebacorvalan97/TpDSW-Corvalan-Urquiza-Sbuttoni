@@ -3,6 +3,7 @@
  * Conectado a MySQL a través de Prisma ORM.
  */
 import { prisma } from '../prisma.js';
+import { HttpError } from '../errors/http-error.js';
 
 export interface SubstituteIngredient {
     idSubstituteIngredient: number;
@@ -107,6 +108,10 @@ export const substituteIngredientRepository = {
             });
         }
 
+        if (substituteIng.idIngrediente === data.ingredientePrincipalId) {
+            throw new HttpError(400, 'Un ingrediente no puede sustituirse a sí mismo');
+        }
+
         const created = await prisma.ingredienteSustituto.create({
             data: {
                 idIngrediente: data.ingredientePrincipalId,
@@ -128,6 +133,24 @@ export const substituteIngredientRepository = {
 
     // UPDATE
     updateSubstitute: async (idSubstituteIngredient: number, data: SubstituteIngredientInput): Promise<SubstituteIngredient | null> => {
+        let substituteIng = await prisma.ingrediente.findUnique({
+            where: { nombreIngrediente: data.nombreSustituto },
+        });
+
+        if (!substituteIng) {
+            substituteIng = await prisma.ingrediente.create({
+                data: {
+                    nombreIngrediente: data.nombreSustituto,
+                    descripcion: '',
+                    unidadMedidaDefecto: 'unidad',
+                },
+            });
+        }
+
+        if (substituteIng.idIngrediente === data.ingredientePrincipalId) {
+            throw new HttpError(400, 'Un ingrediente no puede sustituirse a sí mismo');
+        }
+
         const updated = await prisma.ingredienteSustituto.update({
             where: {
                 idSustituto_idIngrediente: {
@@ -136,6 +159,7 @@ export const substituteIngredientRepository = {
                 },
             },
             data: {
+                idSustituto: substituteIng.idIngrediente,
                 proporcionConversion: data.proporcion,
                 notas: data.notas ?? '',
             },

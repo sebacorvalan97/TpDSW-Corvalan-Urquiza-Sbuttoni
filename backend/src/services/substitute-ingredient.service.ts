@@ -81,23 +81,23 @@ function validateInput(body: unknown, ingredientePrincipalId: number): Substitut
 /**
  * Valida que el id del ingrediente principal sea válido y que el ingrediente exista en la base de datos.
  */
-async function ensureIngredientExists(rawIngredientId: unknown): Promise<number> {
+async function ensureIngredientExists(rawIngredientId: unknown): Promise<{ idIngredient: number; nombre: string }> {
     const ingredientId = parseId(rawIngredientId);
     const ingredient = await ingredientRepository.getIngredientById(ingredientId);
     if (!ingredient) {
         throw new HttpError(404, 'Ingrediente principal no encontrado');
     }
-    return ingredientId;
+    return ingredient;
 }
 
 export const substituteIngredientService = {
     getAll: async (rawIngredientId: unknown): Promise<SubstituteIngredient[]> => {
-        const ingredientId = await ensureIngredientExists(rawIngredientId);
+        const { idIngredient: ingredientId } = await ensureIngredientExists(rawIngredientId);
         return substituteIngredientRepository.getAllByIngredientId(ingredientId);
     },
 
     getById: async (rawIngredientId: unknown, rawId: unknown): Promise<SubstituteIngredient> => {
-        const ingredientId = await ensureIngredientExists(rawIngredientId);
+        const { idIngredient: ingredientId } = await ensureIngredientExists(rawIngredientId);
         const id = parseId(rawId);
         const substitute = await substituteIngredientRepository.getSubstituteById(id, ingredientId);
         if (!substitute || substitute.ingredientePrincipalId !== ingredientId) {
@@ -107,8 +107,13 @@ export const substituteIngredientService = {
     },
 
     create: async (rawIngredientId: unknown, body: unknown): Promise<SubstituteIngredient> => {
-        const ingredientId = await ensureIngredientExists(rawIngredientId);
+        const mainIngredient = await ensureIngredientExists(rawIngredientId);
+        const ingredientId = mainIngredient.idIngredient;
         const data = validateInput(body, ingredientId);
+
+        if (data.nombreSustituto.toLowerCase() === mainIngredient.nombre.trim().toLowerCase()) {
+            throw new HttpError(400, 'Un ingrediente no puede sustituirse a sí mismo');
+        }
 
         // Regla de negocio: no puede haber dos sustitutos con el mismo nombre para el mismo ingrediente principal.
         const existente = await substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto);
@@ -119,7 +124,8 @@ export const substituteIngredientService = {
     },
 
     update: async (rawIngredientId: unknown, rawId: unknown, body: unknown): Promise<SubstituteIngredient> => {
-        const ingredientId = await ensureIngredientExists(rawIngredientId);
+        const mainIngredient = await ensureIngredientExists(rawIngredientId);
+        const ingredientId = mainIngredient.idIngredient;
         const id = parseId(rawId);
 
         const existing = await substituteIngredientRepository.getSubstituteById(id, ingredientId);
@@ -128,6 +134,10 @@ export const substituteIngredientService = {
         }
 
         const data = validateInput(body, ingredientId);
+
+        if (data.nombreSustituto.toLowerCase() === mainIngredient.nombre.trim().toLowerCase()) {
+            throw new HttpError(400, 'Un ingrediente no puede sustituirse a sí mismo');
+        }
 
         // Puede conservar su propio nombre, pero no copiar el de OTRO sustituto del mismo ingrediente principal.
         const mismoNombre = await substituteIngredientRepository.getSubstituteByNameAndIngredientId(ingredientId, data.nombreSustituto);
@@ -143,7 +153,7 @@ export const substituteIngredientService = {
     },
 
     remove: async (rawIngredientId: unknown, rawId: unknown): Promise<void> => {
-        const ingredientId = await ensureIngredientExists(rawIngredientId);
+        const { idIngredient: ingredientId } = await ensureIngredientExists(rawIngredientId);
         const id = parseId(rawId);
 
         const existing = await substituteIngredientRepository.getSubstituteById(id, ingredientId);

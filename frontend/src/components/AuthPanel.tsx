@@ -12,13 +12,12 @@ export interface AuthSession {
 }
 
 interface Props {
-  role: AuthRole;
-  onRoleChange: (role: AuthRole) => void;
   onSuccess: (session: AuthSession) => void;
   onCancel: () => void;
+  onRegister?: () => void;
 }
 
-export default function AuthPanel({ role, onRoleChange, onSuccess, onCancel }: Props) {
+export default function AuthPanel({ onSuccess, onCancel, onRegister }: Props) {
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,27 +28,46 @@ export default function AuthPanel({ role, onRoleChange, onSuccess, onCancel }: P
     setLoading(true);
     setError('');
 
+    const credentials = JSON.stringify({ mail: mail.trim(), password });
+    const headers = { 'Content-Type': 'application/json' };
+
     try {
-      const response = await fetch(`${API_BASE}/${role === 'admin' ? 'admins' : 'users'}/login`, {
+      const response = await fetch(`${API_BASE}/users/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mail: mail.trim(), password }),
+        headers,
+        body: credentials,
       });
       const result = await response.json() as {
+        role?: AuthRole;
         token?: string;
         user?: { idUser: number; name: string; mail: string };
         admin?: { idAdmin: number; name: string; mail: string };
         message?: string;
       };
-      if (!response.ok || !result.token) {
-        throw new Error(result.message || 'No se pudo iniciar sesión.');
+
+      if (response.ok && result.token && result.user) {
+        onSuccess({
+          token: result.token,
+          role: 'user',
+          id: result.user.idUser,
+          name: result.user.name,
+          mail: result.user.mail,
+        });
+        return;
       }
 
-      const identity = role === 'admin' ? result.admin : result.user;
-      const id = role === 'admin' ? result.admin?.idAdmin : result.user?.idUser;
-      if (!identity || id === undefined) throw new Error('El servidor devolvió una sesión incompleta.');
+      if (response.ok && result.token && result.admin) {
+        onSuccess({
+          token: result.token,
+          role: 'admin',
+          id: result.admin.idAdmin,
+          name: result.admin.name,
+          mail: result.admin.mail,
+        });
+        return;
+      }
 
-      onSuccess({ token: result.token, role, id, name: identity.name, mail: identity.mail });
+      throw new Error(result.message || 'Correo o contraseña incorrectos.');
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión.');
     } finally {
@@ -62,7 +80,7 @@ export default function AuthPanel({ role, onRoleChange, onSuccess, onCancel }: P
       <div className="mb-6 text-center">
         <span className="material-symbols-outlined text-4xl text-[#154212]">account_circle</span>
         <h1 className="mt-2 text-2xl font-bold text-[#154212]">
-          {role === 'admin' ? 'Acceso de administración' : 'Iniciar sesión'}
+          Iniciar sesión
         </h1>
         <p className="mt-1 text-sm text-[#605e5b]">Ingresa con tu correo y contraseña.</p>
       </div>
@@ -103,9 +121,11 @@ export default function AuthPanel({ role, onRoleChange, onSuccess, onCancel }: P
       </form>
 
       <div className="mt-5 flex items-center justify-between border-t border-[#e4e2e1] pt-4 text-sm">
-        <button type="button" onClick={() => onRoleChange(role === 'admin' ? 'user' : 'admin')} className="font-medium text-[#154212] hover:underline">
-          {role === 'admin' ? 'Acceso de usuario' : 'Acceso de administrador'}
-        </button>
+        {onRegister ? (
+          <button type="button" onClick={onRegister} className="font-medium text-[#154212] hover:underline">
+            ¿No tienes cuenta? Crear usuario
+          </button>
+        ) : <span />}
         <button type="button" onClick={onCancel} className="text-[#605e5b] hover:text-[#154212]">Volver</button>
       </div>
     </section>

@@ -312,7 +312,7 @@ export default function RecipeDiscover({
                 origenes={origenes}
                 dificultades={dificultades}
                 onSelect={onSelectRecipe}
-                onToggleFavorite={onToggleFavorite ?? (() => {})}
+                onToggleFavorite={onToggleFavorite}
                 onStartCooking={onStartCooking ?? (() => {})}
               />
             ))}

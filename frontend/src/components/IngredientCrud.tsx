@@ -28,21 +28,22 @@ export default function IngredientCrud({ onChanged }: { onChanged?: (ingredients
     // Truco: al cambiar la `key` de IngredientForm, React lo vuelve a crear vacío (ver más abajo).
     const [formVersion, setFormVersion] = useState(0);
 
-    // READ: se ejecuta UNA vez, cuando el componente aparece en pantalla (por eso el [] final).
+    // READ: se ejecuta al montar el componente.
     useEffect(() => {
-        const loadIngredients = async () => {
-            try {
-                const loaded = await ingredientService.getAll();
-                setIngredients(loaded);
-                onChanged?.(loaded);
-            } catch (err) {
-                setError(getErrorMessage(err));
-            } finally {
-                setIsLoading(false);   // pase lo que pase, dejamos de mostrar "Cargando…"
-            }
+        let isMounted = true;
+        void ingredientService.getAll().then((loaded) => {
+            if (!isMounted) return;
+            setIngredients(loaded);
+            onChanged?.(loaded);
+        }).catch((err: unknown) => {
+            if (isMounted) setError(getErrorMessage(err));
+        }).finally(() => {
+            if (isMounted) setIsLoading(false);
+        });
+        return () => {
+            isMounted = false;
         };
-        void loadIngredients();
-    }, []);
+    }, [onChanged]);
 
     // Lista filtrada por el texto de búsqueda. useMemo evita recalcular si nada cambió.
     const visibleIngredients = useMemo(() => {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { recipeCatalogController } from '../controllers/recipe-catalog.controller.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin } from '../middlewares/auth.js';
 
 export const recipeCatalogRouter = Router();
 

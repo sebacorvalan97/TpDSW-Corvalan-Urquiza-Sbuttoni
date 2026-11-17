@@ -1,6 +1,6 @@
 import { HttpError } from '../errors/http-error.js';
 import { recipeRepository, type Recipe } from '../repositories/recipe.repository.js';
-import type { AuthenticatedPrincipal } from '../../middleware/auth.js';
+import type { AuthenticatedPrincipal } from '../../middlewares/auth.js';
 
 /**
  * Valida que el usuario autenticado sea el creador de la receta o tenga rol de administrador.

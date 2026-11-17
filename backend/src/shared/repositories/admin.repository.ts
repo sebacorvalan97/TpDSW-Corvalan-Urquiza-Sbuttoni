@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { prisma } from '../prisma.js';
 import type { Prisma } from '../../generated/prisma/client.js';
-import { isActiveAccountState } from '../utils/account-status.js';
+import { isActiveAccountState, normalizeAccountState } from '../utils/account-status.js';
 
 export interface Admin {
     idAdmin: number;
@@ -53,7 +53,7 @@ export const adminRepository = {
             'Administrador',
             process.env.ADMIN_MAIL ?? 'admin@recetario.com',
             process.env.ADMIN_PASSWORD ?? 'admin1234',
-            'active',
+            'activo',
         );
     },
 
@@ -78,9 +78,14 @@ export const adminRepository = {
         const account = await prisma.cuenta.findFirst({
             where: {
                 mail,
-                administrador: exceptId === undefined
-                    ? { isNot: null }
-                    : { is: { idAdministrador: { not: exceptId } } },
+                ...(exceptId === undefined
+                    ? {}
+                    : {
+                        OR: [
+                            { administrador: { is: null } },
+                            { administrador: { is: { idAdministrador: { not: exceptId } } } },
+                        ],
+                    }),
             },
             select: { idCuenta: true },
         });
@@ -92,7 +97,7 @@ export const adminRepository = {
             data: {
                 mail,
                 contrasenia: hashPassword(password),
-                estado: state,
+                estado: normalizeAccountState(state),
                 administrador: {
                     create: { nombre: name },
                 },
@@ -120,7 +125,7 @@ export const adminRepository = {
             data: {
                 ...(newData.mail === undefined ? {} : { mail: newData.mail }),
                 ...(newData.password ? { contrasenia: hashPassword(newData.password) } : {}),
-                ...(newData.state === undefined ? {} : { estado: newData.state }),
+                ...(newData.state === undefined ? {} : { estado: normalizeAccountState(newData.state) }),
                 ...(newData.name === undefined ? {} : { administrador: { update: adminUpdate } }),
             },
         });

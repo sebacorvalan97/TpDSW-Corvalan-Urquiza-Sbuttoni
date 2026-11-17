@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { adminRepository } from "../shared/repositories/admin.repository.js";
-import { createSession, destroySession, getSessionFromRequest, getTokenFromRequest } from "../middleware/auth.js";
-import { isActiveAccountState } from "../shared/utils/account-status.js";
+import { createSession, destroySession, getSessionFromRequest, getTokenFromRequest } from "../middlewares/auth.js";
+import { isActiveAccountState, isValidAccountState, normalizeAccountState } from "../shared/utils/account-status.js";
 import { parseId } from "../shared/utils/parse-id.js";
 
 export const adminController = {
@@ -51,14 +51,15 @@ export const adminController = {
         if (
             typeof name !== 'string' || !name.trim() ||
             typeof mail !== 'string' || !mail.trim() ||
-            typeof password !== 'string' || password.length < 8
+            typeof password !== 'string' || password.length < 8 ||
+            (state !== undefined && !isValidAccountState(state))
         ) {
             return res.status(400).json({ message: "Nombre, mail y contraseña (mínimo 8 caracteres) son obligatorios" });
         }
         if (await adminRepository.mailExists(mail.trim())) {
-            return res.status(409).json({ message: "Ya existe un administrador con ese mail" });
+            return res.status(409).json({ message: "Ya existe una cuenta registrada con ese mail" });
         }
-        res.status(201).json(await adminRepository.createAdmin(name.trim(), mail.trim(), password, state ?? "active"));
+        res.status(201).json(await adminRepository.createAdmin(name.trim(), mail.trim(), password, normalizeAccountState(state)));
     },
 
     updateAdmin: async (req: Request, res: Response) => {
@@ -68,12 +69,12 @@ export const adminController = {
             (name !== undefined && (typeof name !== 'string' || !name.trim())) ||
             (mail !== undefined && (typeof mail !== 'string' || !mail.trim())) ||
             (password !== undefined && (typeof password !== 'string' || password.length < 8)) ||
-            (state !== undefined && typeof state !== 'string')
+            (state !== undefined && !isValidAccountState(state))
         ) {
             return res.status(400).json({ message: "Los datos enviados para actualizar el administrador no son válidos." });
         }
         if (mail && await adminRepository.mailExists(mail.trim(), idAdmin)) {
-            return res.status(409).json({ message: "Ya existe un administrador con ese mail" });
+            return res.status(409).json({ message: "Ya existe una cuenta registrada con ese mail" });
         }
         if (state && !isActiveAccountState(state)) {
             const activeCount = await adminRepository.countActive();

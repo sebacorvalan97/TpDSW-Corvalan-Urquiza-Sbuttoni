@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { recipeRepository, type RecipeWriteData } from '../shared/repositories/recipe.repository.js';
 import { HttpError } from '../shared/errors/http-error.js';
-import { getSessionFromRequest } from '../middleware/auth.js';
+import { getSessionFromRequest } from '../middlewares/auth.js';
 import { assertCanManageRecipe } from '../shared/utils/recipe-authorization.js';
 
 const readRecipeData = (body: unknown, partial: boolean): RecipeWriteData => {
@@ -52,7 +52,8 @@ const readRecipeData = (body: unknown, partial: boolean): RecipeWriteData => {
 
     if (input.ingredients !== undefined) {
         if (!Array.isArray(input.ingredients)) throw new HttpError(400, 'La lista de ingredientes no es válida.');
-        data.ingredients = input.ingredients.map((ingredient: unknown) => {
+        const consolidated = new Map<number, { idIngredient: number; cantidad: number; unidad: string }>();
+        for (const ingredient of input.ingredients) {
             if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
                 throw new HttpError(400, 'Un ingrediente de la receta no es válido.');
             }
@@ -64,12 +65,19 @@ const readRecipeData = (body: unknown, partial: boolean): RecipeWriteData => {
             ) {
                 throw new HttpError(400, 'Cada ingrediente debe tener un ingrediente, cantidad y unidad válidos.');
             }
-            return {
-                idIngredient: item.idIngredient as number,
-                cantidad: item.cantidad,
-                unidad: item.unidad.trim(),
-            };
-        });
+            const idIngredient = item.idIngredient as number;
+            const existing = consolidated.get(idIngredient);
+            if (existing) {
+                existing.cantidad = Number((existing.cantidad + item.cantidad).toFixed(2));
+            } else {
+                consolidated.set(idIngredient, {
+                    idIngredient,
+                    cantidad: item.cantidad,
+                    unidad: item.unidad.trim(),
+                });
+            }
+        }
+        data.ingredients = Array.from(consolidated.values());
     }
 
     if (input.steps !== undefined) {

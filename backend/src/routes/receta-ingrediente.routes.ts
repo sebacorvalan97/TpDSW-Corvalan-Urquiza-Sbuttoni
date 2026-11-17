@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { recetaIngredienteController } from '../controllers/receta-ingrediente.controller.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth } from '../middlewares/auth.js';
 
 export const recetaIngredienteRouter = Router();
 

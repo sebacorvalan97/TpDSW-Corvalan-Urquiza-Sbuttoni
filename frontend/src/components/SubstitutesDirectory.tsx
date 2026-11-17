@@ -20,12 +20,6 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState('unidad');
 
-  // Estado para formulario de sustitutos (admin)
-  const [subOriginalId, setSubOriginalId] = useState('');
-  const [subReplacementId, setSubReplacementId] = useState('');
-  const [proportion, setProportion] = useState('1:1');
-  const [notes, setNotes] = useState('');
-
   // Filtro de búsqueda en la lista de sustitutos
   const [subSearch, setSubSearch] = useState('');
 
@@ -79,34 +73,6 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
       await userDataService.removePantryItem(id);
       setPantry((items) => items.filter((item) => item.idIngredient !== id));
       showSuccess('Ingrediente quitado de tu despensa.');
-    } catch (cause: unknown) {
-      setError(getErrorMessage(cause));
-    }
-  };
-
-  const addSubstitute = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    try {
-      setError('');
-      const created = await userDataService.createSubstitute(Number(subOriginalId), Number(subReplacementId), proportion, notes);
-      setSubstitutes((items) => [...items.filter((item) => item.id !== created.id), created]);
-      setSubOriginalId('');
-      setSubReplacementId('');
-      setProportion('1:1');
-      setNotes('');
-      showSuccess('Sustituto registrado correctamente en el catálogo.');
-    } catch (cause: unknown) {
-      setError(getErrorMessage(cause));
-    }
-  };
-
-  const removeSubstitute = async (item: SubstituteApi) => {
-    if (!window.confirm(`¿Eliminar el sustituto "${item.substituteName}" para "${item.ingredientName}"?`)) return;
-    try {
-      setError('');
-      await userDataService.deleteSubstitute(item.ingredientId, item.substituteId);
-      setSubstitutes((items) => items.filter((substitute) => substitute.id !== item.id));
-      showSuccess('Sustituto eliminado del catálogo.');
     } catch (cause: unknown) {
       setError(getErrorMessage(cause));
     }
@@ -251,11 +217,6 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
                 </span>
                 {item.notes && <span className="text-[11px] text-[#72796e] italic">({item.notes})</span>}
               </div>
-              {authSession?.role === 'admin' && (
-                <button className="rounded-md px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 transition shrink-0" onClick={() => void removeSubstitute(item)} type="button">
-                  Eliminar
-                </button>
-              )}
             </li>
           ))}
           {filteredSubstitutes.length === 0 && (
@@ -265,51 +226,6 @@ export default function SubstitutesDirectory({ ingredientes, authSession, onSign
           )}
         </ul>
       </section>
-
-      {/* REGISTRO DE SUSTITUTO (ADMIN) */}
-      {authSession?.role === 'admin' && (
-        <form className="grid gap-3 rounded-xl border border-[#c2c9bb]/50 bg-white p-5 sm:grid-cols-2" onSubmit={(event) => void addSubstitute(event)}>
-          <div className="sm:col-span-2 flex items-center gap-2 border-b border-[#f0eded] pb-2">
-            <span className="material-symbols-outlined text-sm text-[#154212]">add_circle</span>
-            <h2 className="text-sm font-bold text-[#154212]">Agregar Nuevo Sustituto (Administrador)</h2>
-          </div>
-          <select
-            className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
-            required
-            value={subOriginalId}
-            onChange={(event) => setSubOriginalId(event.target.value)}
-          >
-            <option value="">Ingrediente original</option>
-            {ingredientes.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-          </select>
-          <select
-            className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
-            required
-            value={subReplacementId}
-            onChange={(event) => setSubReplacementId(event.target.value)}
-          >
-            <option value="">Ingrediente sustituto</option>
-            {ingredientes.filter((item) => item.id !== subOriginalId).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-          </select>
-          <input
-            className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
-            placeholder="Proporción (ej. 1:1, 1 taza : 3/4 taza)"
-            required
-            value={proportion}
-            onChange={(event) => setProportion(event.target.value)}
-          />
-          <input
-            className="rounded-xl border border-[#c2c9bb] bg-white p-2.5 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-2 focus:ring-[#154212]"
-            maxLength={200}
-            placeholder="Notas o recomendaciones (opcional)"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-          />
-          <button className="rounded-xl bg-[#154212] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#2d5a27] transition sm:col-span-2" type="submit">
-            Registrar Sustituto
-          </button>
-        </form>
-      )}
     </section>
   );
 }

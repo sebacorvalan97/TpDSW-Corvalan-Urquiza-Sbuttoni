@@ -50,8 +50,8 @@ export default function UserManagementCrud({ onUsersChanged }: Props) {
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Cargar usuarios al montar
-  const loadUsers = async () => {
+  // Recargar usuarios manualmente
+  const reloadUsers = async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -66,8 +66,20 @@ export default function UserManagementCrud({ onUsersChanged }: Props) {
   };
 
   useEffect(() => {
-    void loadUsers();
-  }, []);
+    let isMounted = true;
+    void userManagementService.getAllUsers().then((data) => {
+      if (!isMounted) return;
+      setUsers(data);
+      onUsersChanged?.(data);
+    }).catch((err: unknown) => {
+      if (isMounted) setError(getErrorMessage(err));
+    }).finally(() => {
+      if (isMounted) setIsLoading(false);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [onUsersChanged]);
 
   // Notificación temporal
   const showSuccess = (msg: string) => {
@@ -266,7 +278,7 @@ export default function UserManagementCrud({ onUsersChanged }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => void loadUsers()}
+            onClick={() => void reloadUsers()}
             className="text-xs underline hover:no-underline"
           >
             Reintentar

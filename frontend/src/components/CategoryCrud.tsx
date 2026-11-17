@@ -28,21 +28,22 @@ export default function CategoryCrud({ onChanged }: { onChanged?: (categories: C
     // Truco: al cambiar la `key` de CategoryForm, React lo vuelve a crear vacío (ver más abajo).
     const [formVersion, setFormVersion] = useState(0);
 
-    // READ: se ejecuta UNA vez, cuando el componente aparece en pantalla (por eso el [] final).
+    // READ: se ejecuta al montar el componente.
     useEffect(() => {
-        const loadCategories = async () => {
-            try {
-                const loaded = await categoryService.getAll();
-                setCategories(loaded);
-                onChanged?.(loaded);
-            } catch (err) {
-                setError(getErrorMessage(err));
-            } finally {
-                setIsLoading(false);   // pase lo que pase, dejamos de mostrar "Cargando…"
-            }
+        let isMounted = true;
+        void categoryService.getAll().then((loaded) => {
+            if (!isMounted) return;
+            setCategories(loaded);
+            onChanged?.(loaded);
+        }).catch((err: unknown) => {
+            if (isMounted) setError(getErrorMessage(err));
+        }).finally(() => {
+            if (isMounted) setIsLoading(false);
+        });
+        return () => {
+            isMounted = false;
         };
-        void loadCategories();
-    }, []);
+    }, [onChanged]);
 
     // Lista filtrada por el texto de búsqueda. useMemo evita recalcular si nada cambió.
     const visibleCategories = useMemo(() => {

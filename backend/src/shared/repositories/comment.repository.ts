@@ -1,5 +1,6 @@
 import { prisma } from '../prisma.js';
 import { HttpError } from '../errors/http-error.js';
+import type { AuthenticatedPrincipal } from '../../middlewares/auth.js';
 
 const mapComment = (comment: {
     idComentario: number;
@@ -67,6 +68,43 @@ export const commentRepository = {
             include: { ...commentInclude, likes: { select: { idCuenta: true } } },
         });
         return mapComment(comment, false);
+    },
+
+    update: async (commentId: number, userId: number, rating: number, text: string) => {
+        const existing = await prisma.comentario.findUnique({
+            where: { idComentario: commentId },
+            select: { idComentario: true, idCuenta: true },
+        });
+        if (!existing) throw new HttpError(404, 'Comentario no encontrado.');
+        if (existing.idCuenta !== userId) {
+            throw new HttpError(403, 'Solo puedes editar tus propios comentarios.');
+        }
+        const updated = await prisma.comentario.update({
+            where: { idComentario: commentId },
+            data: {
+                calificacion: rating,
+                descripcionComentario: text,
+            },
+            include: {
+                ...commentInclude,
+                likes: { where: { idCuenta: userId }, select: { idCuenta: true } },
+            },
+        });
+        return mapComment(updated, updated.likes.length > 0);
+    },
+
+    remove: async (commentId: number, session: AuthenticatedPrincipal): Promise<void> => {
+        const existing = await prisma.comentario.findUnique({
+            where: { idComentario: commentId },
+            select: { idComentario: true, idCuenta: true },
+        });
+        if (!existing) throw new HttpError(404, 'Comentario no encontrado.');
+        if (session.role !== 'admin' && existing.idCuenta !== session.id) {
+            throw new HttpError(403, 'Solo puedes eliminar tus propios comentarios.');
+        }
+        await prisma.comentario.delete({
+            where: { idComentario: commentId },
+        });
     },
 
     toggleLike: async (commentId: number, userId: number) => prisma.$transaction(async (transaction) => {

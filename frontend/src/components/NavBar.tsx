@@ -20,7 +20,7 @@ export default function Navbar({
   onSignOut,
 }: Props) {
   const navButtonClass = (isActive: boolean) =>
-    `border-b-2 pb-1 text-sm transition-colors ${
+    `whitespace-nowrap border-b-2 pb-1 text-sm transition-colors ${
       isActive
         ? 'border-[#154212] font-bold text-[#154212]'
         : 'border-transparent font-medium text-[#42493e] hover:text-[#154212]'
@@ -100,8 +100,20 @@ export default function Navbar({
           )}
           {authSession ? (
             <>
-              {favoritesCount > 0 && (
-                <span className="hidden text-sm text-[#605e5b] lg:inline">{favoritesCount} favoritas</span>
+              {authSession.role === 'user' && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('favorites')}
+                  className={`hidden items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition lg:inline-flex ${
+                    currentTab === 'favorites'
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'text-[#605e5b] hover:bg-[#f6f3f2] hover:text-red-600'
+                  }`}
+                  title="Ver mis recetas favoritas"
+                >
+                  <span className="material-symbols-outlined text-base text-red-600 font-fill">favorite</span>
+                  <span>{favoritesCount} favoritas</span>
+                </button>
               )}
               <div className="flex items-center gap-2 rounded-full border border-[#c2c9bb] bg-[#f6f3f2] px-2 py-1.5">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#154212] text-sm font-bold text-white">

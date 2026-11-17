@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Categoria, Dificultad, Ingrediente, Origen, Receta, Usuario } from '../types';
 import { UNIDADES_MEDIDA } from '../constants/unidades';
@@ -59,24 +59,9 @@ export default function RecipeWizardModal(props: Props) {
     recipe ? recipe.tiempoPreparacionMin + recipe.tiempoCoccionMin : 30
   );
 
-  // Asegura valores por defecto cuando cargan los catálogos
-  useEffect(() => {
-    if (!categoriaId && props.categorias.length > 0) {
-      setCategoriaId(props.categorias[0].id);
-    }
-  }, [props.categorias, categoriaId]);
-
-  useEffect(() => {
-    if (!origenId && props.origenes.length > 0) {
-      setOrigenId(props.origenes[0].id);
-    }
-  }, [props.origenes, origenId]);
-
-  useEffect(() => {
-    if (!dificultadId && props.dificultades.length > 0) {
-      setDificultadId(props.dificultades[0].id);
-    }
-  }, [props.dificultades, dificultadId]);
+  const selectedCategoriaId = categoriaId || (props.categorias[0]?.id ?? '');
+  const selectedOrigenId = origenId || (props.origenes[0]?.id ?? '');
+  const selectedDificultadId = dificultadId || (props.dificultades[0]?.id ?? '');
 
   // Estado de las listas dinámicas de ingredientes y pasos, con una fila con valores estándar.
   const [ingredientes, setIngredientes] = useState<IngredienteDraft[]>(
@@ -172,24 +157,26 @@ export default function RecipeWizardModal(props: Props) {
     }
 
     // Verifica que las opciones elegidas sigan existiendo en los catálogos recibidos.
-    if (!props.categorias.some((categoria) => categoria.id === categoriaId)
-      || !props.origenes.some((origen) => origen.id === origenId)
-      || !props.dificultades.some((dificultad) => dificultad.id === dificultadId)) {
+    if (!props.categorias.some((categoria) => categoria.id === selectedCategoriaId)
+      || !props.origenes.some((origen) => origen.id === selectedOrigenId)
+      || !props.dificultades.some((dificultad) => dificultad.id === selectedDificultadId)) {
       setError('Selecciona una categoría, un origen y una dificultad válidos.');
       return;
     }
 
-    // Reutiliza ingredientes conocidos; los nombres nuevos se incorporan al catálogo global.
+    // Reutiliza ingredientes conocidos; los nombres nuevos se incorporan al catálogo global y se consolidan repetidos.
     setIsSaving(true);
     try {
-      const ingredientesGuardados: Ingrediente[] = [];
+      const catalogoLocal = [...props.ingredientesCatalogo];
+      const ingredientesPorId = new Map<string, Ingrediente>();
+
       for (const ingrediente of ingredientesCompletos) {
         const rawNombre = ingrediente.nombre.trim();
         const unidad = ingrediente.unidad.trim() || 'unidad';
         const norm = normalizeText(rawNombre);
 
         // Búsqueda tolerante: coincidencia exacta, sin tildes, o plural/singular (ej. "huevos" -> "huevo")
-        const existente = props.ingredientesCatalogo.find((item) => {
+        let catalogo = catalogoLocal.find((item) => {
           const itemNorm = normalizeText(item.nombre);
           return (
             itemNorm === norm ||
@@ -200,15 +187,25 @@ export default function RecipeWizardModal(props: Props) {
           );
         });
 
-        const catalogo = existente
-          ?? await props.onCreateIngredient(rawNombre, unidad);
+        if (!catalogo) {
+          catalogo = await props.onCreateIngredient(rawNombre, unidad);
+          catalogoLocal.push(catalogo);
+        }
 
-        ingredientesGuardados.push({
-          ...catalogo,
-          cantidad: ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : 1,
-          unidad,
-        });
+        const cantidad = ingrediente.cantidad.trim() ? Number(ingrediente.cantidad) : 1;
+        const previo = ingredientesPorId.get(catalogo.id);
+        if (previo) {
+          previo.cantidad = Number(((previo.cantidad ?? 0) + cantidad).toFixed(2));
+        } else {
+          ingredientesPorId.set(catalogo.id, {
+            ...catalogo,
+            cantidad,
+            unidad,
+          });
+        }
       }
+
+      const ingredientesGuardados = Array.from(ingredientesPorId.values());
 
       // Empaqueta los campos del plato y la receta para que App los persista en la API.
       const platoId = recipe?.plato.id ?? '';
@@ -220,9 +217,9 @@ export default function RecipeWizardModal(props: Props) {
           nombre: nombre.trim(),
           descripcion: descripcion.trim(),
           imagenUrl: imagenUrl.trim(),
-          categoriaId,
-          origenId,
-          dificultadId,
+          categoriaId: selectedCategoriaId,
+          origenId: selectedOrigenId,
+          dificultadId: selectedDificultadId,
         },
         tiempoPreparacionMin: duracionMinutos,
         tiempoCoccionMin: 0,
@@ -417,7 +414,7 @@ export default function RecipeWizardModal(props: Props) {
                       <label className="block text-xs font-bold text-[#154212] mb-1">Categoría *</label>
                       <select
                         className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c]"
-                        value={categoriaId}
+                        value={selectedCategoriaId}
                         onChange={(event) => setCategoriaId(event.target.value)}
                         required
                       >
@@ -432,7 +429,7 @@ export default function RecipeWizardModal(props: Props) {
                       <label className="block text-xs font-bold text-[#154212] mb-1">Origen / Región *</label>
                       <select
                         className="w-full bg-[#fbf9f8] border border-[#c2c9bb] rounded-xl px-3 py-2 text-xs text-[#1b1c1c]"
-                        value={origenId}
+                        value={selectedOrigenId}
                         onChange={(event) => setOrigenId(event.target.value)}
                         required
                       >
@@ -450,7 +447,7 @@ export default function RecipeWizardModal(props: Props) {
                     <label className="block text-xs font-bold text-[#154212] mb-1">Dificultad *</label>
                     <div className="flex space-x-2">
                       {props.dificultades.map((dificultad) => {
-                        const isSelected = dificultadId === dificultad.id;
+                        const isSelected = selectedDificultadId === dificultad.id;
                         return (
                           <button
                             key={dificultad.id}

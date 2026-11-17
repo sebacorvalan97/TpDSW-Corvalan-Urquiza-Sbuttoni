@@ -20,7 +20,11 @@ import SubstituteIngredientForm, { type SustitutoInputData } from './SubstituteI
 import SubstituteIngredientList from './SubstituteIngredientList';
 import './SubstituteIngredientCrud.css';
 
-export default function SubstituteIngredientCrud() {
+export default function SubstituteIngredientCrud({
+    onIngredientsChanged,
+}: {
+    onIngredientsChanged?: (ingredients: IngredienteApi[]) => void;
+}) {
     // ---- ESTADO DE INGREDIENTES PRINCIPALES ----
     const [ingredients, setIngredients] = useState<IngredienteApi[]>([]);
     const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
@@ -139,9 +143,12 @@ export default function SubstituteIngredientCrud() {
                     data
                 );
                 setSubstitutes((current) =>
-                    current.map((s) => (s.idSubstituteIngredient === updated.idSubstituteIngredient ? updated : s))
+                    current.map((s) => (s.idSubstituteIngredient === editing.idSubstituteIngredient ? updated : s))
                 );
             }
+            const refreshedIngredients = await ingredientService.getAll();
+            setIngredients(refreshedIngredients);
+            onIngredientsChanged?.(refreshedIngredients);
             setEditing(null);
             setFormVersion((v) => v + 1);
         } catch (err) {

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { HttpError } from '../shared/errors/http-error.js';
-import { getSessionFromRequest } from '../middleware/auth.js';
+import { getSessionFromRequest } from '../middlewares/auth.js';
 import { commentRepository } from '../shared/repositories/comment.repository.js';
 
 const positiveId = (value: unknown, label: string): number => {
@@ -32,6 +32,26 @@ export const commentController = {
             rating,
             text.trim(),
         ));
+    },
+
+    update: async (req: Request, res: Response) => {
+        const session = getSessionFromRequest(req);
+        if (!session || session.role !== 'user') throw new HttpError(401, 'Inicia sesión como usuario para editar tu comentario.');
+        const commentId = positiveId(req.params.commentId, 'El identificador de comentario');
+        const { rating, text } = req.body ?? {};
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5 ||
+            typeof text !== 'string' || !text.trim() || text.trim().length > 2000) {
+            throw new HttpError(400, 'Escribe un comentario de hasta 2000 caracteres y califica entre 1 y 5.');
+        }
+        res.json(await commentRepository.update(commentId, session.id, rating, text.trim()));
+    },
+
+    remove: async (req: Request, res: Response) => {
+        const session = getSessionFromRequest(req);
+        if (!session) throw new HttpError(401, 'Inicia sesión para eliminar un comentario.');
+        const commentId = positiveId(req.params.commentId, 'El identificador de comentario');
+        await commentRepository.remove(commentId, session);
+        res.status(204).send();
     },
 
     toggleLike: async (req: Request, res: Response) => {

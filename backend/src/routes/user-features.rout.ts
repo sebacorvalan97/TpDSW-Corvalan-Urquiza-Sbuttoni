@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin, requireUser } from '../middleware/auth.js';
+import { requireAdmin, requireUser } from '../middlewares/auth.js';
 import { userFeaturesController } from '../controllers/user-features.controller.js';
 
 export const userFeaturesRouter = Router();

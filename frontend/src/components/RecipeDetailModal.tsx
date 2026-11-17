@@ -9,9 +9,12 @@ interface Props {
   todosIngredientes?: Ingrediente[];
   comentarios: Comentario[];
   currentUser: Usuario;
+  isAdmin?: boolean;
   onClose: () => void;
-  onToggleFavorite: (id: string) => Promise<void>;
+  onToggleFavorite?: (id: string) => Promise<void>;
   onAddComment: (id: string, rating: number, text: string) => Promise<void>;
+  onUpdateComment?: (commentId: string, rating: number, text: string) => Promise<void>;
+  onDeleteComment?: (commentId: string) => Promise<void>;
   onLikeComment: (id: string) => Promise<void>;
   onEditRecipe: (recipe: Receta) => void;
   onDeleteRecipe: (id: string) => void;
@@ -29,9 +32,12 @@ export default function RecipeDetailModal({
   dificultades,
   comentarios,
   currentUser,
+  isAdmin = false,
   onClose,
   onToggleFavorite,
   onAddComment,
+  onUpdateComment,
+  onDeleteComment,
   onLikeComment,
   onEditRecipe,
   onDeleteRecipe,
@@ -52,6 +58,12 @@ export default function RecipeDetailModal({
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [text, setText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Estado para edición de comentario existente
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editRating, setEditRating] = useState<number>(5);
+  const [editText, setEditText] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // Atajos de teclado para el Modo Cocina
   useEffect(() => {
@@ -388,18 +400,20 @@ export default function RecipeDetailModal({
             {/* Acciones del Modal: Favorito, Imprimir, Editar, Eliminar */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0eded] pt-4">
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
-                    isFavorite
-                      ? 'border-red-300 bg-red-50 text-red-700'
-                      : 'border-[#c2c9bb] bg-white text-[#154212] hover:bg-[#f6f3f2]'
-                  }`}
-                  onClick={() => void onToggleFavorite(receta.id)}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-sm">{isFavorite ? 'favorite' : 'favorite_border'}</span>
-                  <span>{isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}</span>
-                </button>
+                {onToggleFavorite && (
+                  <button
+                    className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+                      isFavorite
+                        ? 'border-red-300 bg-red-50 text-red-700'
+                        : 'border-[#c2c9bb] bg-white text-[#154212] hover:bg-[#f6f3f2]'
+                    }`}
+                    onClick={() => void onToggleFavorite(receta.id)}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-sm">{isFavorite ? 'favorite' : 'favorite_border'}</span>
+                    <span>{isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -513,37 +527,136 @@ export default function RecipeDetailModal({
 
               {/* Listado de comentarios */}
               <ul className="mt-5 divide-y divide-[#f0eded]">
-                {comentarios.map((comment) => (
-                  <li className="py-3.5 space-y-1.5" key={comment.id}>
-                    <div className="flex items-center justify-between gap-2">
-                      <strong className="text-xs font-bold text-[#1b1c1c]">{comment.nombreUsuario}</strong>
-                      <span className="text-xs text-amber-500" aria-label={`${comment.calificacion} de 5 estrellas`}>
-                        {'★'.repeat(comment.calificacion)}{'☆'.repeat(5 - comment.calificacion)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#42493e] leading-relaxed">{comment.texto}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
-                      <span className="text-[11px] text-[#72796e]">{comment.fecha}</span>
-                      <button
-                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                          comment.likedByUser
-                            ? 'bg-red-50 text-red-600 shadow-xs'
-                            : 'bg-[#f0eded] text-[#42493e] hover:bg-[#e4e2e1]'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void onLikeComment(comment.id);
-                        }}
-                        type="button"
-                        title={comment.likedByUser ? 'Quitar Me gusta' : 'Dar Me gusta'}
-                      >
-                        <span>{comment.likedByUser ? '❤️' : '🤍'}</span>
-                        <span>{comment.likedByUser ? 'Te gusta' : 'Me gusta'}</span>
-                        <span className="opacity-75">({comment.likes})</span>
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                {comentarios.map((comment) => {
+                  const isCommentAuthor = !isAdmin && comment.usuarioId === currentUser.id;
+                  const canDeleteThisComment = isCommentAuthor || isAdmin;
+                  const isEditingThis = editingCommentId === comment.id;
+
+                  return (
+                    <li className="py-3.5 space-y-2" key={comment.id}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-xs font-bold text-[#1b1c1c]">{comment.nombreUsuario}</strong>
+                          {isCommentAuthor && (
+                            <span className="rounded-full bg-[#bcf0ae]/50 px-2 py-0.5 text-[10px] font-semibold text-[#154212]">
+                              Tu comentario
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-amber-500" aria-label={`${comment.calificacion} de 5 estrellas`}>
+                          {'★'.repeat(comment.calificacion)}{'☆'.repeat(5 - comment.calificacion)}
+                        </span>
+                      </div>
+
+                      {isEditingThis ? (
+                        <div className="rounded-xl border border-[#c2c9bb] bg-[#fbf9f8] p-3 space-y-2.5">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-semibold text-[#154212] mr-1">Calificación:</span>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setEditRating(star)}
+                                className="text-lg focus:outline-hidden"
+                                title={`${star} de 5 estrellas`}
+                              >
+                                <span className={`material-symbols-outlined ${
+                                  star <= editRating ? 'text-amber-500 font-fill' : 'text-[#c2c9bb]'
+                                }`}>
+                                  star
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            rows={2}
+                            maxLength={2000}
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="w-full rounded-lg border border-[#c2c9bb] bg-white p-2 text-xs text-[#1b1c1c] focus:outline-hidden focus:ring-1 focus:ring-[#154212]"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingCommentId(null)}
+                              className="rounded-lg border border-[#c2c9bb] bg-white px-3 py-1 text-xs font-semibold text-[#42493e] hover:bg-[#f6f3f2]"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSavingEdit || !editText.trim()}
+                              onClick={async () => {
+                                if (!onUpdateComment || !editText.trim()) return;
+                                setIsSavingEdit(true);
+                                try {
+                                  await onUpdateComment(comment.id, editRating, editText.trim());
+                                  setEditingCommentId(null);
+                                } finally {
+                                  setIsSavingEdit(false);
+                                }
+                              }}
+                              className="rounded-lg bg-[#154212] px-3 py-1 text-xs font-bold text-white hover:bg-[#2d5a27] disabled:opacity-50"
+                            >
+                              {isSavingEdit ? 'Guardando...' : 'Guardar'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[#42493e] leading-relaxed">{comment.texto}</p>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 pt-1">
+                        <span className="text-[11px] text-[#72796e]">{comment.fecha}</span>
+                        <div className="flex items-center gap-2">
+                          {isCommentAuthor && onUpdateComment && !isEditingThis && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCommentId(comment.id);
+                                setEditRating(comment.calificacion);
+                                setEditText(comment.texto);
+                              }}
+                              className="rounded-md px-2 py-1 text-xs font-semibold text-[#154212] hover:bg-[#154212]/10 transition"
+                            >
+                              Editar
+                            </button>
+                          )}
+                          {canDeleteThisComment && onDeleteComment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('¿Estás seguro de que deseas eliminar este comentario?')) {
+                                  void onDeleteComment(comment.id);
+                                }
+                              }}
+                              className="rounded-md px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 transition"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                          <button
+                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                              comment.likedByUser
+                                ? 'bg-red-50 text-red-600 shadow-xs'
+                                : 'bg-[#f0eded] text-[#42493e] hover:bg-[#e4e2e1]'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void onLikeComment(comment.id);
+                            }}
+                            type="button"
+                            title={comment.likedByUser ? 'Quitar Me gusta' : 'Dar Me gusta'}
+                          >
+                            <span>{comment.likedByUser ? '❤️' : '🤍'}</span>
+                            <span>{comment.likedByUser ? 'Te gusta' : 'Me gusta'}</span>
+                            <span className="opacity-75">({comment.likes})</span>
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
                 {comentarios.length === 0 && (
                   <li className="py-6 text-center text-xs text-[#72796e] bg-[#fbf9f8] rounded-xl mt-3">
                     Aún no hay comentarios para esta receta. ¡Sé el primero en opinar!

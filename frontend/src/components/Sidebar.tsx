@@ -6,12 +6,13 @@ interface Props {
   currentTab: Tab;
   setCurrentTab: (tab: Tab) => void;
   authSession: AuthSession | null;
+  favoritesCount?: number;
   onSelectTag: (tag: string) => void;
 }
 
 const tags = ['Italiana', 'Vegana', 'Rápida', 'Verano'];
 
-export default function Sidebar({ currentTab, setCurrentTab, authSession, onSelectTag }: Props) {
+export default function Sidebar({ currentTab, setCurrentTab, authSession, favoritesCount = 0, onSelectTag }: Props) {
   const navClass = (tab: Tab) => `flex items-center rounded-lg p-3 transition-colors ${
     currentTab === tab
       ? 'bg-primary-container font-bold text-on-primary-container'
@@ -58,6 +59,19 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
           <span className="material-symbols-outlined mr-3">kitchen</span>
           <span className="font-label-md">{authSession ? 'Mi despensa' : 'Sustitutos'}</span>
         </button>
+        {authSession?.role === 'user' && (
+          <button className={`${navClass('favorites')} w-full text-left justify-between`} onClick={() => setCurrentTab('favorites')} type="button">
+            <span className="flex items-center">
+              <span className="material-symbols-outlined mr-3 text-red-600 font-fill">favorite</span>
+              <span className="font-label-md">Favoritas</span>
+            </span>
+            {favoritesCount > 0 && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                {favoritesCount}
+              </span>
+            )}
+          </button>
+        )}
       </nav>
 
       <div className="border-t border-outline-variant pt-6">
@@ -73,17 +87,6 @@ export default function Sidebar({ currentTab, setCurrentTab, authSession, onSele
               {tag}
             </button>
           ))}
-        </div>
-      </div>
-
-      <div className="mt-auto border-t border-outline-variant pt-4">
-        <div className="flex items-center p-3 text-on-surface-variant">
-          <span className="material-symbols-outlined mr-3">settings</span>
-          <span className="font-label-md">Configuración</span>
-        </div>
-        <div className="flex items-center p-3 text-on-surface-variant">
-          <span className="material-symbols-outlined mr-3">help</span>
-          <span className="font-label-md">Ayuda</span>
         </div>
       </div>
     </aside>

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pasoRecetaController } from '../controllers/paso-receta.controller.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth } from '../middlewares/auth.js';
 
 export const pasoRecetaRouter = Router();
 

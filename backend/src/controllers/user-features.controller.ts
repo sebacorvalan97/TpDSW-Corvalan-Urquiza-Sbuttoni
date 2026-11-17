@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { HttpError } from '../shared/errors/http-error.js';
-import { getSessionFromRequest } from '../middleware/auth.js';
+import { getSessionFromRequest } from '../middlewares/auth.js';
 import { userFeaturesRepository } from '../shared/repositories/user-features.repository.js';
 
 const positiveId = (value: unknown, label: string): number => {

@@ -2,7 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { HttpError } from '../errors/http-error.js';
 import { prisma } from '../prisma.js';
 import type { Prisma } from '../../generated/prisma/client.js';
-import { isActiveAccountState } from '../utils/account-status.js';
+import { isActiveAccountState, normalizeAccountState } from '../utils/account-status.js';
 
 export interface User {
     idUser: number;
@@ -100,15 +100,16 @@ export const userRepository = {
         mail: string,
         bio: string,
     ): Promise<PublicUser> => {
+        const [firstName = '', ...lastName] = name.trim().split(/\s+/);
         const account = await prisma.cuenta.create({
             data: {
                 mail,
                 contrasenia: hashPassword(password),
-                estado: state,
+                estado: normalizeAccountState(state),
                 usuario: {
                     create: {
-                        nombre: name,
-                        apellido: '',
+                        nombre: firstName,
+                        apellido: lastName.join(' '),
                         fechaNacimiento: toDate(birth),
                         biografia: bio,
                     },
@@ -139,7 +140,7 @@ export const userRepository = {
             where: { idCuenta: idUser },
             data: {
                 ...(newData.mail === undefined ? {} : { mail: newData.mail }),
-                ...(newData.state === undefined ? {} : { estado: newData.state }),
+                ...(newData.state === undefined ? {} : { estado: normalizeAccountState(newData.state) }),
                 ...(newData.password ? { contrasenia: hashPassword(newData.password) } : {}),
                 usuario: { update: userUpdate },
             },

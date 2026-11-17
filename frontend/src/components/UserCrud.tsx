@@ -28,17 +28,19 @@ const API_URL = `${API_BASE}/users`;
 
 interface Props {
   onRegistered: (session: AuthSession) => void;
+  onCancel?: () => void;
 }
 
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 
-export default function UserCrud({ onRegistered }: Props) {
+export default function UserCrud({ onRegistered, onCancel }: Props) {
   const [form, setForm] = useState<UserFormState>(initialForm);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [currentDate] = useState(() => formatDate(new Date()));
 
   const passwordChecks = useMemo(() => {
     const hasLen = form.password.length >= 8;
@@ -143,7 +145,6 @@ export default function UserCrud({ onRegistered }: Props) {
   const fullName = `${form.name} ${form.lastName}`.trim() || 'Nombre y Apellido';
   const previewMail = form.mail.trim() || 'chef@elbodegondigital.com';
   const previewBio = form.bio.trim() || 'Aún no se ha redactado la biografía culinaria. La historia del chef se mostrará aquí...';
-  const currentDate = formatDate(new Date());
 
   return (
     <section className="w-full max-w-5xl mx-auto px-1 sm:px-2">
@@ -151,12 +152,16 @@ export default function UserCrud({ onRegistered }: Props) {
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <nav aria-label="Ruta de navegación" className="flex items-center space-x-2 text-sm text-[#605e5b] mb-2">
-              <a href="#" className="hover:text-[#154212] transition-colors flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="hover:text-[#154212] transition-colors flex items-center gap-1 cursor-pointer"
+              >
                 <span className="material-symbols-outlined text-sm">home</span>
                 <span>Inicio</span>
-              </a>
+              </button>
               <span className="text-[#c2c9bb]">/</span>
-              <a href="#" className="hover:text-[#154212] transition-colors">Administración de Usuarios</a>
+              <span className="text-[#605e5b]">Registro de Cuenta</span>
               <span className="text-[#c2c9bb]">/</span>
               <span aria-current="page" className="text-[#154212] font-semibold">Nuevo Usuario</span>
             </nav>

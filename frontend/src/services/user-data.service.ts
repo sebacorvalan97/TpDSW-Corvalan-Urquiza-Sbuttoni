@@ -46,6 +46,17 @@ export const userDataService = {
       headers: authHeaders(JSON_HEADERS),
       body: JSON.stringify({ rating, text }),
     }),
+  updateComment: (commentId: number, rating: number, text: string) =>
+    request<CommentApi>(`${API_BASE}/comments/${commentId}`, {
+      method: 'PUT',
+      headers: authHeaders(JSON_HEADERS),
+      body: JSON.stringify({ rating, text }),
+    }),
+  deleteComment: (commentId: number) =>
+    request<void>(`${API_BASE}/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    }),
   toggleCommentLike: (commentId: number) =>
     request<CommentApi>(`${API_BASE}/comments/${commentId}/like`, { method: 'POST', headers: authHeaders() }),
 

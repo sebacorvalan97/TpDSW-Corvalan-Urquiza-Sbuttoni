@@ -11,7 +11,7 @@
  */
 import { Router } from 'express';
 import { substituteIngredientController } from '../controllers/substitute-ingredient.controller.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin } from '../middlewares/auth.js';
 
 export const substituteIngredientRouter: Router = Router();
 

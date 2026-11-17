@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { recetaIngredienteRepository } from '../shared/repositories/receta-ingrediente.repository.js';
 import { parseId } from '../shared/utils/parse-id.js';
 import { HttpError } from '../shared/errors/http-error.js';
-import { getSessionFromRequest } from '../middleware/auth.js';
+import { getSessionFromRequest } from '../middlewares/auth.js';
 import { assertCanManageRecipe } from '../shared/utils/recipe-authorization.js';
 
 export const recetaIngredienteController = {

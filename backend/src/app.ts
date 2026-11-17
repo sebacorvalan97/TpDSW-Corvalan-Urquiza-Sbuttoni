@@ -65,8 +65,9 @@ async function startServer(): Promise<void> {
   await ensureUserFeatureTables();
   await adminRepository.ensureInitialAdmin();
 
-  app.listen(8080, () => {
-    console.log('Servidor conectado a MySQL y escuchando en el puerto 8080');
+  const port = Number(process.env.PORT ?? 8080);
+  app.listen(port, () => {
+    console.log(`Servidor conectado a MySQL y escuchando en el puerto ${port}`);
   });
 }
 
