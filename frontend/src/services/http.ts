@@ -5,8 +5,17 @@
  * a mensajes legibles. Lo escribimos UNA vez acá y cada servicio lo reutiliza (no copiamos y pegamos).
  */
 
-// Dirección base del backend. Soporta variable de entorno o fallback relativo '/api' con proxy de Vite.
-export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+// Dirección base del backend. Soporta variable de entorno (con o sin sufijo '/api') o fallback relativo '/api' con proxy de Vite.
+const normalizeApiBase = (raw?: string): string => {
+    const trimmed = raw?.trim().replace(/\/+$/, '');
+    if (!trimmed) return '/api';
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+export const API_BASE = normalizeApiBase(
+    (import.meta.env.VITE_API_BASE as string | undefined) ||
+    (import.meta.env.VITE_API_URL as string | undefined),
+);
 
 // Cabecera que le avisa al backend que el cuerpo de la petición viene en formato JSON.
 export const JSON_HEADERS = { 'Content-Type': 'application/json' };

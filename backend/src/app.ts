@@ -12,6 +12,7 @@ import { errorHandler } from './middlewares/error-handler.js';
 import { adminRouter } from './routes/admin.rout.js';
 import { prisma } from './shared/prisma.js';
 import { adminRepository } from './shared/repositories/admin.repository.js';
+import { ensureDatabaseReady } from './shared/database-bootstrap.js';
 import { recipeCatalogRouter } from './routes/recipe-catalog.rout.js';
 import { userFeaturesRouter } from './routes/user-features.rout.js';
 import { commentRouter } from './routes/comment.rout.js';
@@ -20,6 +21,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 app.use('/api/dishes', dishRouter);
 app.use('/api/users', userRouter);
@@ -36,33 +41,9 @@ app.use('/api/recipes-ingredientes', recetaIngredienteRouter);
 
 app.use(errorHandler);
 
-async function ensureUserFeatureTables(): Promise<void> {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS \`favorito\` (
-      \`idCuenta\` INTEGER NOT NULL,
-      \`idReceta\` INTEGER NOT NULL,
-      \`fechaAlta\` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-      INDEX \`idx_favorito_receta\`(\`idReceta\`),
-      PRIMARY KEY (\`idCuenta\`, \`idReceta\`),
-      CONSTRAINT \`favorito_idCuenta_fkey\` FOREIGN KEY (\`idCuenta\`) REFERENCES \`usuario\`(\`idCuenta\`) ON DELETE CASCADE ON UPDATE CASCADE,
-      CONSTRAINT \`favorito_idReceta_fkey\` FOREIGN KEY (\`idReceta\`) REFERENCES \`receta\`(\`idReceta\`) ON DELETE CASCADE ON UPDATE CASCADE
-    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  `);
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS \`comentario_like\` (
-      \`idCuenta\` INTEGER NOT NULL,
-      \`idComentario\` INTEGER NOT NULL,
-      INDEX \`idx_comentario_like_comentario\`(\`idComentario\`),
-      PRIMARY KEY (\`idCuenta\`, \`idComentario\`),
-      CONSTRAINT \`comentario_like_idCuenta_fkey\` FOREIGN KEY (\`idCuenta\`) REFERENCES \`usuario\`(\`idCuenta\`) ON DELETE CASCADE ON UPDATE CASCADE,
-      CONSTRAINT \`comentario_like_idComentario_fkey\` FOREIGN KEY (\`idComentario\`) REFERENCES \`comentario\`(\`idComentario\`) ON DELETE CASCADE ON UPDATE CASCADE
-    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  `);
-}
-
 async function startServer(): Promise<void> {
   await prisma.$connect();
-  await ensureUserFeatureTables();
+  await ensureDatabaseReady();
   await adminRepository.ensureInitialAdmin();
 
   const port = Number(process.env.PORT ?? 8080);
